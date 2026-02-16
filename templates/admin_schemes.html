@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Schemes Management - AI-Farm Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="container">
+        <div class="admin-header">
+            <h1><i class="fas fa-file-alt"></i> Government Schemes Management</h1>
+            <p>Manage all government schemes</p>
+        </div>
+
+        <div class="admin-toolbar">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchSchemes" placeholder="Search schemes...">
+            </div>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <div class="schemes-card">
+            <div class="card-header">
+                <h2>All Schemes ({{ schemes|length }})</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="schemes-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Scheme Name</th>
+                            <th>Category</th>
+                            <th>Ministry</th>
+                            <th>Added On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scheme in schemes %}
+                        <tr>
+                            <td>{{ scheme.id }}</td>
+                            <td><strong>{{ scheme.scheme_name }}</strong></td>
+                            <td><span class="category-badge">{{ scheme.category }}</span></td>
+                            <td>{{ scheme.ministry }}</td>
+                            <td>{{ scheme.created_at[:10] }}</td>
+                            <td>
+                                <a href="{{ url_for('scheme_detail', scheme_id=scheme.id) }}" class="btn-view">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.schemes-card {
+    background: var(--white);
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.schemes-card .card-header {
+    background: var(--light);
+    padding: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.schemes-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.schemes-table th {
+    background: var(--primary-color);
+    color: var(--white);
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+}
+
+.schemes-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.schemes-table tbody tr:hover {
+    background: var(--light);
+}
+
+.category-badge {
+    background: var(--primary-light);
+    color: var(--white);
+    padding: 0.35rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.btn-view {
+    background: var(--secondary-color);
+    color: var(--white);
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.btn-view:hover {
+    background: #2563EB;
+}
+</style>
+
+<script>
+document.getElementById('searchSchemes').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('.schemes-table tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

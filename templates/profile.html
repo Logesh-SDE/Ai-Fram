@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - AI-Farm{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-user-circle"></i> My Profile</h1>
+            <p>Manage your account information</p>
+        </div>
+
+        <div class="profile-container">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user fa-4x"></i>
+                    </div>
+                    <h2>{{ user.username }}</h2>
+                    <p class="profile-email">{{ user.email }}</p>
+                </div>
+
+                <div class="profile-info">
+                    <div class="info-group">
+                        <label><i class="fas fa-id-card"></i> Full Name</label>
+                        <p>{{ user.full_name or 'Not provided' }}</p>
+                    </div>
+
+                    <div class="info-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Farm Location</label>
+                        <p>{{ user.farm_location or 'Not provided' }}</p>
+                    </div>
+
+                    <div class="info-group">
+                        <label><i class="fas fa-chart-area"></i> Farm Size</label>
+                        <p>{{ user.farm_size or 'Not provided' }} acres</p>
+                    </div>
+
+                    <div class="info-group">
+                        <label><i class="fas fa-calendar-alt"></i> Member Since</label>
+                        <p>{{ user.created_at[:10] }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="account-actions">
+                <h2><i class="fas fa-cog"></i> Account Settings</h2>
+                <div class="actions-list">
+                    <button class="action-btn" disabled>
+                        <i class="fas fa-edit"></i> Edit Profile
+                        <span class="coming-soon">Coming Soon</span>
+                    </button>
+                    <button class="action-btn" disabled>
+                        <i class="fas fa-key"></i> Change Password
+                        <span class="coming-soon">Coming Soon</span>
+                    </button>
+                    <button class="action-btn" disabled>
+                        <i class="fas fa-bell"></i> Notification Settings
+                        <span class="coming-soon">Coming Soon</span>
+                    </button>
+                    <a href="{{ url_for('logout') }}" class="action-btn logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+                
+                <div class="danger-zone">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Danger Zone</h3>
+                    <p>Once you delete your account, there is no going back. This will permanently delete your account and all associated data.</p>
+                    <button onclick="confirmDeleteAccount()" class="btn-delete-account">
+                        <i class="fas fa-trash-alt"></i> Delete My Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.danger-zone {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: #FEE2E2;
+    border: 2px solid var(--danger-color);
+    border-radius: 10px;
+}
+
+.danger-zone h3 {
+    color: var(--danger-color);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.danger-zone p {
+    color: #991B1B;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.btn-delete-account {
+    background: var(--danger-color);
+    color: var(--white);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+}
+
+.btn-delete-account:hover {
+    background: #DC2626;
+    transform: scale(1.02);
+}
+</style>
+
+<script>
+function confirmDeleteAccount() {
+    const confirmed = confirm('⚠️ WARNING: This will permanently delete your account and ALL your data!\n\nThis action CANNOT be undone!\n\nAre you sure?');
+    
+    if (confirmed) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("delete_account") }}';
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

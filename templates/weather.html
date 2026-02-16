@@ -1,0 +1,908 @@
+{% extends "base.html" %}
+
+{% block title %}Weather - AI-Farm{% endblock %}
+
+{% block content %}
+<div class="weather-page">
+    <div class="weather-hero">
+        <div class="container">
+            <div class="weather-header-content">
+                <h1><i class="fas fa-cloud-sun"></i> Smart Weather Station</h1>
+                <p>Real-time weather data powered by AI for better farming decisions</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Location Control Panel -->
+        <div class="location-control-panel">
+            <div class="location-methods">
+                <button onclick="requestGeolocation()" class="location-btn gps-btn">
+                    <i class="fas fa-crosshairs"></i>
+                    <span>Use My GPS Location</span>
+                </button>
+                <div class="location-divider">OR</div>
+                <div class="manual-location">
+                    <input type="text" id="locationInput" placeholder="Enter city name..." value="{{ location if location else '' }}">
+                    <button onclick="updateWeather()" class="location-btn search-btn">
+                        <i class="fas fa-search"></i>
+                        <span>Search</span>
+                    </button>
+                </div>
+            </div>
+            <div class="current-location-display">
+                <i class="fas fa-map-marker-alt"></i>
+                <span id="currentLocation">{{ weather.location if weather and weather.location else (location if location else 'No location set') }}</span>
+                {% if weather and weather.country %}
+                <span class="country-code">{{ weather.country }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Main Weather Display -->
+        <div class="weather-dashboard">
+            {% if weather %}
+            <!-- Current Weather Card -->
+            <div class="current-weather-card">
+                <div class="weather-main-info">
+                    <div class="weather-icon-large">
+                        {% if weather.condition in ['Clear', 'Sunny'] %}
+                            <i class="fas fa-sun sunny-icon"></i>
+                        {% elif weather.condition in ['Clouds', 'Cloudy'] %}
+                            <i class="fas fa-cloud cloudy-icon"></i>
+                        {% elif weather.condition in ['Rain', 'Rainy', 'Drizzle'] %}
+                            <i class="fas fa-cloud-rain rainy-icon"></i>
+                        {% elif weather.condition == 'Snow' %}
+                            <i class="fas fa-snowflake snow-icon"></i>
+                        {% elif weather.condition == 'Thunderstorm' %}
+                            <i class="fas fa-bolt storm-icon"></i>
+                        {% elif weather.condition in ['Mist', 'Fog', 'Haze'] %}
+                            <i class="fas fa-smog mist-icon"></i>
+                        {% else %}
+                            <i class="fas fa-cloud-sun partly-icon"></i>
+                        {% endif %}
+                    </div>
+                    <div class="weather-temp-display">
+                        <div class="temperature">{{ weather.temperature }}<span class="degree">°C</span></div>
+                        <div class="condition-name">{{ weather.condition }}</div>
+                        {% if weather.description %}
+                        <div class="condition-description">{{ weather.description|title }}</div>
+                        {% endif %}
+                        {% if weather.feels_like %}
+                        <div class="feels-like">Feels like {{ weather.feels_like }}°C</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Weather Metrics Grid -->
+                <div class="weather-metrics">
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-label">Humidity</div>
+                            <div class="metric-value">{{ weather.humidity }}%</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-wind"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-label">Wind Speed</div>
+                            <div class="metric-value">{{ weather.wind_speed }} km/h</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-cloud-rain"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-label">Rainfall</div>
+                            <div class="metric-value">{{ weather.rainfall }} mm</div>
+                        </div>
+                    </div>
+
+                    {% if weather.pressure %}
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-compress-arrows-alt"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-label">Pressure</div>
+                            <div class="metric-value">{{ weather.pressure }} hPa</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if weather.visibility %}
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-label">Visibility</div>
+                            <div class="metric-value">{{ weather.visibility }} km</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if weather.sunrise and weather.sunset %}
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-sunrise"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-label">Sunrise</div>
+                            <div class="metric-value">{{ weather.sunrise }}</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-sunset"></i>
+                        </div>
+                        <div class="metric-info">
+                            <div class="metric-label">Sunset</div>
+                            <div class="metric-value">{{ weather.sunset }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 5-Day Forecast -->
+            {% if weather.forecast %}
+            <div class="forecast-card">
+                <h2><i class="fas fa-calendar-week"></i> 5-Day Forecast</h2>
+                <div class="forecast-timeline">
+                    {% for day in weather.forecast %}
+                    <div class="forecast-day">
+                        <div class="day-name">{{ day.day }}</div>
+                        <div class="forecast-day-icon">
+                            {% if day.condition in ['Clear', 'Sunny'] %}
+                                <i class="fas fa-sun"></i>
+                            {% elif day.condition in ['Clouds', 'Cloudy'] %}
+                                <i class="fas fa-cloud"></i>
+                            {% elif day.condition in ['Rain', 'Rainy', 'Drizzle'] %}
+                                <i class="fas fa-cloud-rain"></i>
+                            {% else %}
+                                <i class="fas fa-cloud-sun"></i>
+                            {% endif %}
+                        </div>
+                        <div class="forecast-temp">{{ day.temp }}°C</div>
+                        <div class="forecast-condition">{{ day.condition }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- AI Farming Advice -->
+            <div class="farming-advice-card">
+                <h2><i class="fas fa-brain"></i> AI Farming Recommendations</h2>
+                <div class="advice-grid">
+                    {% if weather.condition in ['Rain', 'Rainy', 'Drizzle'] or weather.rainfall > 10 %}
+                    <div class="advice-item rain-advice">
+                        <div class="advice-icon">
+                            <i class="fas fa-umbrella"></i>
+                        </div>
+                        <div class="advice-content">
+                            <h3>Rainy Weather Alert</h3>
+                            <ul>
+                                <li>Delay pesticide application until dry</li>
+                                <li>Check drainage systems</li>
+                                <li>Monitor for fungal diseases</li>
+                                <li>Postpone harvesting if possible</li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if weather.temperature > 30 %}
+                    <div class="advice-item heat-advice">
+                        <div class="advice-icon">
+                            <i class="fas fa-temperature-high"></i>
+                        </div>
+                        <div class="advice-content">
+                            <h3>High Temperature Alert</h3>
+                            <ul>
+                                <li>Increase irrigation frequency</li>
+                                <li>Apply mulch to retain moisture</li>
+                                <li>Monitor for heat stress</li>
+                                <li>Consider shade netting</li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if weather.humidity > 70 %}
+                    <div class="advice-item humidity-advice">
+                        <div class="advice-icon">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="advice-content">
+                            <h3>High Humidity Notice</h3>
+                            <ul>
+                                <li>Watch for fungal infections</li>
+                                <li>Improve air circulation</li>
+                                <li>Apply preventive fungicides</li>
+                                <li>Reduce irrigation if possible</li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if weather.wind_speed > 20 %}
+                    <div class="advice-item wind-advice">
+                        <div class="advice-icon">
+                            <i class="fas fa-wind"></i>
+                        </div>
+                        <div class="advice-content">
+                            <h3>High Wind Warning</h3>
+                            <ul>
+                                <li>Secure loose equipment</li>
+                                <li>Protect young plants</li>
+                                <li>Delay spraying operations</li>
+                                <li>Check for structural damage</li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="advice-item general-advice">
+                        <div class="advice-icon">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <div class="advice-content">
+                            <h3>General Best Practices</h3>
+                            <ul>
+                                <li>Monitor soil moisture daily</li>
+                                <li>Check weather before activities</li>
+                                <li>Keep emergency supplies ready</li>
+                                <li>Document crop health regularly</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% else %}
+            <!-- Loading/Request Location State -->
+            <div class="current-weather-card">
+                <div class="weather-loading-state">
+                    <div class="loading-icon">
+                        <i class="fas fa-location-arrow fa-3x"></i>
+                    </div>
+                    <h2>Enable Location Access</h2>
+                    <p>We need your location to show accurate weather data for your area.</p>
+                    <button onclick="requestGeolocation()" class="btn-get-location">
+                        <i class="fas fa-crosshairs"></i> Get My Location
+                    </button>
+                    <p class="or-divider">OR</p>
+                    <p class="manual-hint">Enter your city name manually above</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.weather-page {
+    background: #f0f4f8;
+    min-height: 100vh;
+    padding-bottom: 3rem;
+}
+
+.weather-hero {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 3rem 0 2rem;
+    margin-bottom: 2rem;
+}
+
+.weather-header-content {
+    text-align: center;
+    color: #1e293b;
+}
+
+.weather-header-content h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.weather-header-content p {
+    font-size: 1.2rem;
+    opacity: 0.75;
+}
+
+.location-control-panel {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 2rem;
+}
+
+.location-methods {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.location-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.gps-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: var(--white);
+    flex-shrink: 0;
+}
+
+.gps-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.location-divider {
+    color: var(--text-light);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.manual-location {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    min-width: 300px;
+}
+
+.manual-location input {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 50px;
+    font-size: 1rem;
+}
+
+.manual-location input:focus {
+    outline: none;
+    border-color: #10b981;
+}
+
+.search-btn {
+    background: #10b981;
+    color: var(--white);
+}
+
+.search-btn:hover {
+    background: #059669;
+    transform: translateY(-2px);
+}
+
+.current-location-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.current-location-display i {
+    color: #10b981;
+    font-size: 1.3rem;
+}
+
+.country-code {
+    background: #10b981;
+    color: var(--white);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.weather-dashboard {
+    display: grid;
+    gap: 2rem;
+}
+
+.current-weather-card {
+    background: var(--white);
+    padding: 3rem;
+    border-radius: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.weather-main-info {
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.weather-icon-large {
+    font-size: 8rem;
+}
+
+.sunny-icon { color: #10b981; }
+.cloudy-icon { color: #64748b; }
+.rainy-icon { color: #0ea5e9; }
+.snow-icon { color: #60a5fa; }
+.storm-icon { color: #6366f1; }
+.mist-icon { color: #94a3b8; }
+.partly-icon { color: #10b981; }
+
+.temperature {
+    font-size: 5rem;
+    font-weight: bold;
+    color: var(--text-dark);
+    line-height: 1;
+}
+
+.degree {
+    font-size: 3rem;
+    opacity: 0.7;
+}
+
+.condition-name {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-top: 0.5rem;
+}
+
+.condition-description {
+    font-size: 1.2rem;
+    color: var(--text-light);
+    margin-top: 0.25rem;
+}
+
+.feels-like {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-top: 0.5rem;
+}
+
+.weather-loading-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.weather-loading-state .loading-icon {
+    color: #10b981;
+    margin-bottom: 2rem;
+    animation: pulse 2s infinite;
+}
+
+.weather-loading-state h2 {
+    font-size: 2rem;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
+.weather-loading-state p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    margin-bottom: 2rem;
+}
+
+.btn-get-location {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    padding: 1.25rem 3rem;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-get-location:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+.or-divider {
+    color: var(--text-light);
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin: 2rem 0 1rem;
+}
+
+.manual-hint {
+    font-size: 0.95rem;
+    color: var(--text-light);
+    margin-bottom: 0;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+.weather-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.metric-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    border-radius: 15px;
+    transition: all 0.3s;
+    border: 1px solid #f1f5f9;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.metric-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #10b981;
+    color: var(--white);
+    border-radius: 12px;
+    font-size: 1.5rem;
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.forecast-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.forecast-card h2 {
+    color: var(--text-dark);
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+}
+
+.forecast-timeline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1.5rem;
+}
+
+.forecast-day {
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    padding: 2rem 1.5rem;
+    border-radius: 20px;
+    text-align: center;
+    transition: all 0.3s;
+    border: 1px solid #f1f5f9;
+}
+
+.forecast-day:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.day-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
+.forecast-day-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #10b981;
+}
+
+.forecast-temp {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.forecast-condition {
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+.farming-advice-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.farming-advice-card h2 {
+    color: var(--text-dark);
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+}
+
+.advice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.advice-item {
+    padding: 1.5rem;
+    border-radius: 15px;
+    border-left: 4px solid;
+}
+
+.rain-advice {
+    background: #f0f9ff;
+    border-color: #0ea5e9;
+}
+
+.heat-advice {
+    background: #fef2f2;
+    border-color: #ef4444;
+}
+
+.humidity-advice {
+    background: #fffbeb;
+    border-color: #f59e0b;
+}
+
+.wind-advice {
+    background: #eff6ff;
+    border-color: #3b82f6;
+}
+
+.general-advice {
+    background: #f0fdf4;
+    border-color: #10b981;
+}
+
+.advice-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+}
+
+.advice-content h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-dark);
+}
+
+.advice-content ul {
+    list-style: none;
+    padding: 0;
+}
+
+.advice-content li {
+    padding: 0.5rem 0;
+    color: var(--text-dark);
+    display: flex;
+    align-items: start;
+    gap: 0.5rem;
+}
+
+.advice-content li:before {
+    content: "✓";
+    color: inherit;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .weather-header-content h1 {
+        font-size: 2rem;
+    }
+    
+    .weather-main-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .weather-icon-large {
+        font-size: 6rem;
+    }
+    
+    .temperature {
+        font-size: 4rem;
+    }
+    
+    .location-methods {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .manual-location {
+        min-width: 100%;
+    }
+    
+    .gps-btn {
+        justify-content: center;
+    }
+}
+</style>
+
+
+
+<script>
+let userLocation = null;
+
+async function requestGeolocation() {
+    if (!navigator.geolocation) {
+        alert('❌ Geolocation is not supported by your browser.\n\nPlease use a modern browser like Chrome, Firefox, or Safari.');
+        return;
+    }
+    
+    // Show loading
+    const btn = document.querySelector('.gps-btn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Getting Location...</span>';
+    btn.disabled = true;
+    
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Fetching Weather...</span>';
+            
+            try {
+                const response = await fetch('{{ url_for("weather_by_coordinates") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ lat, lon })
+                });
+                
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('❌ Failed to get weather data. Please try again or enter location manually.');
+                }
+            } catch (error) {
+                alert('❌ Error fetching weather data: ' + error.message);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        },
+        (error) => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            
+            let message = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "📍 Location Permission Denied\n\n";
+                    message += "To use GPS location:\n";
+                    message += "1. Click the location icon in your browser's address bar\n";
+                    message += "2. Select 'Allow' for location access\n";
+                    message += "3. Try the GPS button again\n\n";
+                    message += "Or enter your city manually below.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "❌ Location information is unavailable.\n\nPlease check your device's location settings or enter your city manually.";
+                    break;
+                case error.TIMEOUT:
+                    message = "⏱️ Location request timed out.\n\nPlease try again or enter your city manually.";
+                    break;
+                default:
+                    message = "❌ An unknown error occurred.\n\nPlease try again or enter your city manually.";
+            }
+            alert(message);
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+async function updateWeather() {
+    const location = document.getElementById('locationInput').value.trim();
+    
+    if (!location) {
+        alert('⚠️ Please enter a city name');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('location', location);
+    
+    const btn = document.querySelector('.search-btn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading...</span>';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('{{ url_for("update_weather_location") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('❌ Location not found. Please check the spelling and try again.');
+        }
+    } catch (error) {
+        alert('❌ Error updating weather. Please try again.');
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+}
+
+// Enter key support
+document.getElementById('locationInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        updateWeather();
+    }
+});
+
+// Auto-request location on first visit
+{% if show_location_prompt %}
+setTimeout(() => {
+    const shouldAsk = !sessionStorage.getItem('locationAsked');
+    if (shouldAsk) {
+        sessionStorage.setItem('locationAsked', 'true');
+        // Automatically request location without confirmation
+        requestGeolocation();
+    }
+}, 500);
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Disease Detection - AI-Farm{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-microscope"></i> Crop Disease Detection</h1>
+            <p>Upload an image of your crop to detect diseases using AI</p>
+        </div>
+
+        <div class="detection-container">
+            <div class="upload-section">
+                <form method="POST" action="{{ url_for('disease_detection') }}" enctype="multipart/form-data" id="scanForm">
+                    <div class="upload-box" id="uploadBox">
+                        <input type="file" name="crop_image" id="cropImage" accept="image/*" required hidden>
+                        <div class="upload-content" id="uploadContent">
+                            <i class="fas fa-cloud-upload-alt fa-4x"></i>
+                            <h3>Upload Crop Image</h3>
+                            <p>Click to browse or drag and drop</p>
+                            <p class="file-types">Supported: JPG, PNG, JPEG</p>
+                        </div>
+                        <div class="preview-content" id="previewContent" style="display: none;">
+                            <img id="imagePreview" src="" alt="Preview">
+                            <button type="button" class="btn btn-sm btn-secondary" id="changeImage">
+                                <i class="fas fa-sync"></i> Change Image
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crop_type"><i class="fas fa-seedling"></i> Crop Type</label>
+                        <select name="crop_type" id="crop_type" required>
+                            <option value="">Select crop type</option>
+                            <option value="tomato">Tomato</option>
+                            <option value="potato">Potato</option>
+                            <option value="wheat">Wheat</option>
+                            <option value="rice">Rice</option>
+                            <option value="corn">Corn</option>
+                            <option value="cotton">Cotton</option>
+                            <option value="sugarcane">Sugarcane</option>
+                            <option value="onion">Onion</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="scanButton" disabled>
+                        <i class="fas fa-search"></i> Analyze Image
+                    </button>
+                </form>
+            </div>
+
+            <div class="info-section">
+                <div class="info-card">
+                    <h3><i class="fas fa-info-circle"></i> How It Works</h3>
+                    <ol>
+                        <li>Upload a clear image of the affected crop</li>
+                        <li>Select the crop type from the dropdown</li>
+                        <li>Click "Analyze Image" to start detection</li>
+                        <li>Get instant results with treatment recommendations</li>
+                    </ol>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fas fa-lightbulb"></i> Tips for Best Results</h3>
+                    <ul>
+                        <li>Take photos in good lighting conditions</li>
+                        <li>Focus on the affected area</li>
+                        <li>Ensure the image is clear and not blurry</li>
+                        <li>Capture close-up shots of symptoms</li>
+                        <li>Include multiple leaves if possible</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fas fa-check-circle"></i> Detectable Diseases</h3>
+                    <div class="disease-tags">
+                        <span class="tag">Early Blight</span>
+                        <span class="tag">Late Blight</span>
+                        <span class="tag">Leaf Spot</span>
+                        <span class="tag">Rust</span>
+                        <span class="tag">Powdery Mildew</span>
+                        <span class="tag">Bacterial Wilt</span>
+                        <span class="tag">Mosaic Virus</span>
+                        <span class="tag">And more...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadBox = document.getElementById('uploadBox');
+    const cropImage = document.getElementById('cropImage');
+    const uploadContent = document.getElementById('uploadContent');
+    const previewContent = document.getElementById('previewContent');
+    const imagePreview = document.getElementById('imagePreview');
+    const scanButton = document.getElementById('scanButton');
+    const changeImage = document.getElementById('changeImage');
+
+    uploadBox.addEventListener('click', () => {
+        if (previewContent.style.display === 'none') {
+            cropImage.click();
+        }
+    });
+
+    cropImage.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                uploadContent.style.display = 'none';
+                previewContent.style.display = 'block';
+                scanButton.disabled = false;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    });
+
+    changeImage.addEventListener('click', function(e) {
+        e.stopPropagation();
+        cropImage.value = '';
+        uploadContent.style.display = 'block';
+        previewContent.style.display = 'none';
+        scanButton.disabled = true;
+    });
+
+    // Drag and drop
+    uploadBox.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', function() {
+        this.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length) {
+            cropImage.files = e.dataTransfer.files;
+            cropImage.dispatchEvent(new Event('change'));
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %}Fertilizer Calculator - AI-Farm{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-calculator"></i> Fertilizer Calculator</h1>
+            <p>Calculate precise NPK requirements for your crops</p>
+        </div>
+
+        <div class="calculator-container">
+            <div class="calculator-card">
+                <div class="calculator-form">
+                    <div class="form-group">
+                        <label for="cropType">
+                            <i class="fas fa-seedling"></i> Select Crop Type
+                        </label>
+                        <select id="cropType" class="form-control">
+                            <option value="">Choose a crop...</option>
+                            <option value="rice">Rice</option>
+                            <option value="wheat">Wheat</option>
+                            <option value="corn">Corn</option>
+                            <option value="tomato">Tomato</option>
+                            <option value="potato">Potato</option>
+                            <option value="cotton">Cotton</option>
+                            <option value="sugarcane">Sugarcane</option>
+                            <option value="onion">Onion</option>
+                            <option value="soybean">Soybean</option>
+                            <option value="chickpea">Chickpea</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="soilType">
+                            <i class="fas fa-mountain"></i> Select Soil Type
+                        </label>
+                        <select id="soilType" class="form-control">
+                            <option value="">Choose soil type...</option>
+                            <option value="loamy">Loamy (Normal)</option>
+                            <option value="clay">Clay (Heavy)</option>
+                            <option value="sandy">Sandy (Light)</option>
+                            <option value="silt">Silt</option>
+                            <option value="peaty">Peaty</option>
+                            <option value="chalky">Chalky</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="area">
+                            <i class="fas fa-ruler-combined"></i> Farm Area (acres)
+                        </label>
+                        <input type="number" id="area" class="form-control" 
+                               placeholder="Enter area in acres" min="0.1" step="0.1">
+                    </div>
+
+                    <button onclick="calculateFertilizer()" class="btn btn-primary btn-lg btn-block" id="calculateBtn">
+                        <i class="fas fa-calculator"></i> Calculate Requirements
+                    </button>
+                </div>
+
+                <div id="results" class="results-section" style="display: none;">
+                    <h2><i class="fas fa-chart-bar"></i> NPK Requirements</h2>
+                    
+                    <div class="npk-grid">
+                        <div class="npk-card nitrogen">
+                            <div class="npk-icon">
+                                <i class="fas fa-leaf"></i>
+                            </div>
+                            <div class="npk-label">Nitrogen (N)</div>
+                            <div class="npk-value" id="nitrogenValue">0 kg</div>
+                        </div>
+
+                        <div class="npk-card phosphorus">
+                            <div class="npk-icon">
+                                <i class="fas fa-flask"></i>
+                            </div>
+                            <div class="npk-label">Phosphorus (P)</div>
+                            <div class="npk-value" id="phosphorusValue">0 kg</div>
+                        </div>
+
+                        <div class="npk-card potassium">
+                            <div class="npk-icon">
+                                <i class="fas fa-seedling"></i>
+                            </div>
+                            <div class="npk-label">Potassium (K)</div>
+                            <div class="npk-value" id="potassiumValue">0 kg</div>
+                        </div>
+                    </div>
+
+                    <div class="cost-card">
+                        <h3><i class="fas fa-rupee-sign"></i> Estimated Cost</h3>
+                        <div class="cost-value" id="costValue">₹0</div>
+                    </div>
+
+                    <div class="schedule-card">
+                        <h3><i class="fas fa-calendar-alt"></i> Application Schedule</h3>
+                        <div id="scheduleList" class="schedule-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-cards">
+                <div class="info-card">
+                    <h3><i class="fas fa-lightbulb"></i> How it Works</h3>
+                    <p>Our calculator uses scientific NPK ratios based on crop type, soil characteristics, and farm area to provide accurate fertilizer recommendations.</p>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fas fa-info-circle"></i> Tips</h3>
+                    <ul>
+                        <li>Apply fertilizer in split doses for better efficiency</li>
+                        <li>Test soil before application</li>
+                        <li>Consider organic alternatives when possible</li>
+                        <li>Follow recommended timing for best results</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.calculator-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.calculator-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.calculator-form .form-group {
+    margin-bottom: 2rem;
+}
+
+.calculator-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #1F2937;
+    font-size: 1.1rem;
+}
+
+.calculator-form label i {
+    color: var(--primary-color);
+    margin-right: 0.5rem;
+}
+
+.results-section {
+    margin-top: 3rem;
+    padding-top: 3rem;
+    border-top: 2px solid var(--light);
+}
+
+.results-section h2 {
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+}
+
+.npk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.npk-card {
+    padding: 2rem;
+    border-radius: 16px;
+    text-align: center;
+    border: 3px solid;
+    background: white;
+    transition: transform 0.3s;
+}
+
+.npk-card:hover {
+    transform: translateY(-5px);
+}
+
+.npk-card.nitrogen {
+    border-color: #10B981;
+    background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+}
+
+.npk-card.phosphorus {
+    border-color: #3B82F6;
+    background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+}
+
+.npk-card.potassium {
+    border-color: #8B5CF6;
+    background: linear-gradient(135deg, #F5F3FF, #EDE9FE);
+}
+
+.npk-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.nitrogen .npk-icon {
+    color: #10B981;
+}
+
+.phosphorus .npk-icon {
+    color: #3B82F6;
+}
+
+.potassium .npk-icon {
+    color: #8B5CF6;
+}
+
+.npk-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6B7280;
+    margin-bottom: 0.75rem;
+}
+
+.npk-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1F2937;
+}
+
+.cost-card, .schedule-card {
+    background: linear-gradient(135deg, #F9FAFB, #F3F4F6);
+    padding: 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+}
+
+.cost-card h3, .schedule-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+    color: #1F2937;
+}
+
+.cost-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.schedule-percentage {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.schedule-info {
+    flex: 1;
+}
+
+.schedule-stage {
+    font-weight: 700;
+    color: #1F2937;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+.schedule-timing {
+    color: #6B7280;
+    font-size: 0.95rem;
+}
+
+.info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.info-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.info-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.info-card ul {
+    list-style: none;
+    padding: 0;
+}
+
+.info-card li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    color: #4B5563;
+}
+
+.info-card li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--success-color);
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .npk-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+async function calculateFertilizer() {
+    const cropType = document.getElementById('cropType').value;
+    const soilType = document.getElementById('soilType').value;
+    const area = document.getElementById('area').value;
+    
+    if (!cropType || !soilType || !area) {
+        alert('Please fill all fields');
+        return;
+    }
+    
+    const btn = document.getElementById('calculateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating...';
+    
+    try {
+        const response = await fetch('/api/fertilizer/calculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cropType, soilType, area })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayResults(data);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error calculating: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-calculator"></i> Calculate Requirements';
+    }
+}
+
+function displayResults(data) {
+    document.getElementById('nitrogenValue').textContent = data.nitrogen + ' kg';
+    document.getElementById('phosphorusValue').textContent = data.phosphorus + ' kg';
+    document.getElementById('potassiumValue').textContent = data.potassium + ' kg';
+    document.getElementById('costValue').textContent = '₹' + data.estimatedCost.toLocaleString();
+    
+    const scheduleHTML = data.applicationSchedule.map(item => `
+        <div class="schedule-item">
+            <div class="schedule-percentage">${item.percentage}%</div>
+            <div class="schedule-info">
+                <div class="schedule-stage">${item.stage}</div>
+                <div class="schedule-timing">${item.timing}</div>
+            </div>
+        </div>
+    `).join('');
+    
+    document.getElementById('scheduleList').innerHTML = scheduleHTML;
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

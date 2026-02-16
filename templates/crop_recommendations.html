@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Crop Recommendations - AI-Farm{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-leaf"></i> AI Crop Advisor</h1>
+            <p>Get personalized crop recommendations based on your farm conditions</p>
+        </div>
+
+        <div class="recommendations-container">
+            <div class="input-section">
+                <form id="recommendationForm">
+                    <div class="form-group">
+                        <label for="soil_type"><i class="fas fa-layer-group"></i> Soil Type</label>
+                        <select name="soil_type" id="soil_type" required>
+                            <option value="">Select soil type</option>
+                            <option value="loamy">Loamy</option>
+                            <option value="clay">Clay</option>
+                            <option value="sandy">Sandy</option>
+                            <option value="silt">Silt</option>
+                            <option value="peaty">Peaty</option>
+                            <option value="chalky">Chalky</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="season"><i class="fas fa-calendar-alt"></i> Season</label>
+                        <select name="season" id="season" required>
+                            <option value="">Select season</option>
+                            <option value="summer">Summer (March-June)</option>
+                            <option value="monsoon">Monsoon (July-September)</option>
+                            <option value="winter">Winter (October-February)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rainfall"><i class="fas fa-cloud-rain"></i> Expected Rainfall</label>
+                        <select name="rainfall" id="rainfall" required>
+                            <option value="">Select rainfall level</option>
+                            <option value="low">Low (< 500mm)</option>
+                            <option value="medium">Medium (500-1000mm)</option>
+                            <option value="high">High (> 1000mm)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-search"></i> Get Recommendations
+                    </button>
+                </form>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2><i class="fas fa-chart-bar"></i> Recommended Crops</h2>
+                <div id="recommendationsResults"></div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-card">
+                    <h3><i class="fas fa-info-circle"></i> How It Works</h3>
+                    <p>Our AI-powered crop advisor analyzes multiple factors including:</p>
+                    <ul>
+                        <li>Soil composition and pH levels</li>
+                        <li>Seasonal weather patterns</li>
+                        <li>Expected rainfall amounts</li>
+                        <li>Regional climate conditions</li>
+                        <li>Historical crop performance data</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fas fa-lightbulb"></i> Tips for Success</h3>
+                    <ul>
+                        <li>Consider crop rotation for soil health</li>
+                        <li>Start with crops you're familiar with</li>
+                        <li>Diversify to reduce risk</li>
+                        <li>Check local market demand</li>
+                        <li>Ensure water availability matches crop needs</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('recommendationForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const resultsSection = document.getElementById('resultsSection');
+    const resultsDiv = document.getElementById('recommendationsResults');
+    
+    resultsDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Analyzing...</div>';
+    resultsSection.style.display = 'block';
+    
+    try {
+        const response = await fetch('{{ url_for("get_crop_recommendations") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const recommendations = await response.json();
+        
+        let html = '<div class="crop-recommendations-grid">';
+        recommendations.forEach(crop => {
+            html += `
+                <div class="crop-recommendation-card">
+                    <div class="crop-header">
+                        <h3>${crop.crop}</h3>
+                        <span class="suitability-badge ${crop.suitability.toLowerCase()}">${crop.suitability}</span>
+                    </div>
+                    <div class="crop-details">
+                        <div class="detail-item">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Expected Yield: ${crop.expected_yield}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Growing Period: ${crop.duration}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        resultsDiv.innerHTML = html;
+    } catch (error) {
+        resultsDiv.innerHTML = '<div class="error">Error loading recommendations. Please try again.</div>';
+    }
+});
+</script>
+{% endblock %}

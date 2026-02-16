@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Farm Activity Log - AI-Farm{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-book"></i> Farm Activity Log</h1>
+            <p>Track and manage all your farming activities</p>
+        </div>
+
+        <div class="farm-log-container">
+            <div class="log-form-section">
+                <h2><i class="fas fa-plus-circle"></i> Add New Activity</h2>
+                <form method="POST" action="{{ url_for('farm_log') }}" class="activity-form">
+                    <div class="form-group">
+                        <label for="activity_type"><i class="fas fa-tasks"></i> Activity Type</label>
+                        <select name="activity_type" id="activity_type" required>
+                            <option value="">Select activity</option>
+                            <option value="Planting">Planting</option>
+                            <option value="Irrigation">Irrigation</option>
+                            <option value="Fertilization">Fertilization</option>
+                            <option value="Pesticide Application">Pesticide Application</option>
+                            <option value="Weeding">Weeding</option>
+                            <option value="Harvesting">Harvesting</option>
+                            <option value="Soil Testing">Soil Testing</option>
+                            <option value="Pruning">Pruning</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crop_type"><i class="fas fa-seedling"></i> Crop Type</label>
+                        <input type="text" name="crop_type" id="crop_type" placeholder="e.g., Wheat, Tomato" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description"><i class="fas fa-align-left"></i> Description</label>
+                        <textarea name="description" id="description" rows="3" placeholder="Add details about this activity..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-save"></i> Log Activity
+                    </button>
+                </form>
+            </div>
+
+            <div class="log-list-section">
+                <h2><i class="fas fa-history"></i> Activity History</h2>
+                
+                <div class="log-filters">
+                    <input type="text" id="searchActivity" placeholder="Search activities..." class="search-input">
+                    <select id="filterType" class="filter-select">
+                        <option value="all">All Activities</option>
+                        <option value="Planting">Planting</option>
+                        <option value="Irrigation">Irrigation</option>
+                        <option value="Fertilization">Fertilization</option>
+                        <option value="Pesticide Application">Pesticide</option>
+                        <option value="Harvesting">Harvesting</option>
+                    </select>
+                </div>
+
+                {% if activities %}
+                <div class="activity-timeline">
+                    {% for activity in activities %}
+                    <div class="timeline-item" data-type="{{ activity.activity_type }}">
+                        <div class="timeline-marker">
+                            {% if activity.activity_type == 'Planting' %}
+                                <i class="fas fa-seedling"></i>
+                            {% elif activity.activity_type == 'Irrigation' %}
+                                <i class="fas fa-tint"></i>
+                            {% elif activity.activity_type == 'Fertilization' %}
+                                <i class="fas fa-flask"></i>
+                            {% elif activity.activity_type == 'Pesticide Application' %}
+                                <i class="fas fa-spray-can"></i>
+                            {% elif activity.activity_type == 'Harvesting' %}
+                                <i class="fas fa-apple-alt"></i>
+                            {% else %}
+                                <i class="fas fa-check-circle"></i>
+                            {% endif %}
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <h3>{{ activity.activity_type }}</h3>
+                                <span class="timeline-date">{{ activity.activity_date[:16] }}</span>
+                            </div>
+                            <div class="timeline-body">
+                                <p class="crop-type"><i class="fas fa-leaf"></i> {{ activity.crop_type }}</p>
+                                <p class="activity-description">{{ activity.description }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-book-open fa-3x"></i>
+                    <p>No activities logged yet. Start tracking your farm activities!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="statistics-section">
+            <h2><i class="fas fa-chart-bar"></i> Activity Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <i class="fas fa-tasks"></i>
+                    <h3>{{ activities|length }}</h3>
+                    <p>Total Activities</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-calendar-week"></i>
+                    <h3>This Week</h3>
+                    <p>Recent Activities</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Active</h3>
+                    <p>Farm Status</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('searchActivity').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const items = document.querySelectorAll('.timeline-item');
+    
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+    });
+});
+
+document.getElementById('filterType').addEventListener('change', function(e) {
+    const filterValue = e.target.value;
+    const items = document.querySelectorAll('.timeline-item');
+    
+    items.forEach(item => {
+        if (filterValue === 'all' || item.getAttribute('data-type') === filterValue) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

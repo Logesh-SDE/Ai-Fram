@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Market Prices - AI-Farm{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-dollar-sign"></i> Market Prices</h1>
+            <p>Real-time market prices for various crops - Updated {{ today_date }}</p>
+        </div>
+
+        <div class="market-toolbar">
+            <div class="market-filters">
+                <input type="text" id="searchCrop" placeholder="Search crops..." class="search-input">
+                <select id="sortBy" class="sort-select">
+                    <option value="name">Sort by Name</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="recent">Most Recent</option>
+                </select>
+            </div>
+            <form method="POST" action="{{ url_for('refresh_market_prices') }}" style="display: inline;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> Refresh Prices
+                </button>
+            </form>
+        </div>
+
+            <div class="prices-grid">
+                {% for price in prices %}
+                <div class="price-card" data-crop="{{ price.crop_name|lower }}">
+                    <div class="crop-icon">
+                        {% if price.crop_name in ['Wheat', 'Rice', 'Corn'] %}
+                            <i class="fas fa-seedling"></i>
+                        {% elif price.crop_name in ['Tomato', 'Potato', 'Onion'] %}
+                            <i class="fas fa-apple-alt"></i>
+                        {% else %}
+                            <i class="fas fa-leaf"></i>
+                        {% endif %}
+                    </div>
+                    <h3>{{ price.crop_name }}</h3>
+                    <div class="price">₹{{ price.price_per_kg }}/kg</div>
+                    <div class="market-location">
+                        <i class="fas fa-map-marker-alt"></i> {{ price.market_location }}
+                    </div>
+                    <div class="update-time">
+                        Updated: {{ price.updated_at[:16] }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="market-insights">
+                <h2><i class="fas fa-chart-line"></i> Market Insights</h2>
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <i class="fas fa-arrow-up"></i>
+                        <h3>Trending Up</h3>
+                        <p>Tomatoes, Onions showing price increase</p>
+                    </div>
+                    <div class="insight-card">
+                        <i class="fas fa-arrow-down"></i>
+                        <h3>Trending Down</h3>
+                        <p>Potatoes prices stabilizing</p>
+                    </div>
+                    <div class="insight-card">
+                        <i class="fas fa-balance-scale"></i>
+                        <h3>Stable Markets</h3>
+                        <p>Wheat and Rice prices steady</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="market-tips">
+                <h3><i class="fas fa-lightbulb"></i> Selling Tips</h3>
+                <ul>
+                    <li>Monitor prices daily for best selling opportunities</li>
+                    <li>Consider storage costs when deciding harvest timing</li>
+                    <li>Diversify crops to reduce market risk</li>
+                    <li>Check multiple markets for best rates</li>
+                    <li>Join farmer cooperatives for better bargaining power</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('searchCrop').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const cards = document.querySelectorAll('.price-card');
+    
+    cards.forEach(card => {
+        const cropName = card.getAttribute('data-crop');
+        if (cropName.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+
+document.getElementById('sortBy').addEventListener('change', function(e) {
+    const container = document.querySelector('.prices-grid');
+    const cards = Array.from(container.querySelectorAll('.price-card'));
+    
+    cards.sort((a, b) => {
+        switch(e.target.value) {
+            case 'name':
+                return a.getAttribute('data-crop').localeCompare(b.getAttribute('data-crop'));
+            case 'price-high':
+                const priceA = parseFloat(a.querySelector('.price').textContent.replace(/[^0-9.]/g, ''));
+                const priceB = parseFloat(b.querySelector('.price').textContent.replace(/[^0-9.]/g, ''));
+                return priceB - priceA;
+            case 'price-low':
+                const priceC = parseFloat(a.querySelector('.price').textContent.replace(/[^0-9.]/g, ''));
+                const priceD = parseFloat(b.querySelector('.price').textContent.replace(/[^0-9.]/g, ''));
+                return priceC - priceD;
+            default:
+                return 0;
+        }
+    });
+    
+    cards.forEach(card => container.appendChild(card));
+});
+</script>
+{% endblock %}

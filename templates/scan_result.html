@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Results - AI-Farm{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-microscope"></i> Analysis Results</h1>
+            <p>Scan completed on {{ scan.scan_date[:16] }}</p>
+        </div>
+
+        <div class="result-container">
+            <div class="result-image">
+                <img src="{{ url_for('static', filename=scan.image_path.replace('static/', '')) }}" alt="Scanned crop">
+            </div>
+
+            <div class="result-details">
+                <div class="result-card">
+                    <h2>Detection Results</h2>
+                    <div class="result-info">
+                        <div class="info-item">
+                            <span class="label">Crop Type:</span>
+                            <span class="value">{{ scan.crop_type }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Disease Detected:</span>
+                            <span class="value disease-name {% if scan.disease_detected == 'Healthy' %}healthy{% else %}diseased{% endif %}">
+                                {{ scan.disease_detected }}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Confidence Level:</span>
+                            <span class="value">{{ (scan.confidence * 100)|round(1) }}%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: {{ (scan.confidence * 100)|round(1) }}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-card recommendations">
+                    <h2><i class="fas fa-lightbulb"></i> Recommendations</h2>
+                    {% if recommendations %}
+                        <ul class="recommendation-list">
+                            {% for rec in recommendations %}
+                            <li>
+                                <i class="fas fa-check-circle"></i>
+                                {{ rec }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No specific recommendations available.</p>
+                    {% endif %}
+                </div>
+
+                {% if scan.disease_detected != 'Healthy' %}
+                <div class="result-card warning">
+                    <h2><i class="fas fa-exclamation-triangle"></i> Important Notes</h2>
+                    <ul>
+                        <li>Take immediate action to prevent disease spread</li>
+                        <li>Monitor neighboring plants for similar symptoms</li>
+                        <li>Consult with agricultural experts for severe cases</li>
+                        <li>Maintain proper farm hygiene and sanitation</li>
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div class="result-actions">
+                    <a href="{{ url_for('disease_detection') }}" class="btn btn-primary">
+                        <i class="fas fa-camera"></i> Scan Another Crop
+                    </a>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                        <i class="fas fa-chart-line"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
