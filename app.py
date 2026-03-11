@@ -169,7 +169,7 @@ def admin_required(f):
 # Add default admin user
 def add_default_admin():
     try:
-        conn = sqlite3.connect('aifarm.db')
+        conn = sqlite3app.connect('aifarm.db')
         c = conn.cursor()
         c.execute('SELECT id FROM users WHERE username = ?', ('admin',))
         if not c.fetchone():

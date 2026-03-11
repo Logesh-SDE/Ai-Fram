@@ -40,9 +40,9 @@
                         <label for="rainfall"><i class="fas fa-cloud-rain"></i> Expected Rainfall</label>
                         <select name="rainfall" id="rainfall" required>
                             <option value="">Select rainfall level</option>
-                            <option value="low">Low (< 500mm)</option>
+                            <option value="low">Low (&lt; 500mm)</option>
                             <option value="medium">Medium (500-1000mm)</option>
-                            <option value="high">High (> 1000mm)</option>
+                            <option value="high">High (&gt; 1000mm)</option>
                         </select>
                     </div>
 
@@ -52,58 +52,110 @@
                 </form>
             </div>
 
-            <div class="results-section" id="resultsSection" style="display: none;">
-                <h2><i class="fas fa-chart-bar"></i> Recommended Crops</h2>
-                <div id="recommendationsResults"></div>
-            </div>
-
-            <div class="info-section">
-                <div class="info-card">
-                    <h3><i class="fas fa-info-circle"></i> How It Works</h3>
-                    <p>Our AI-powered crop advisor analyzes multiple factors including:</p>
-                    <ul>
-                        <li>Soil composition and pH levels</li>
-                        <li>Seasonal weather patterns</li>
-                        <li>Expected rainfall amounts</li>
-                        <li>Regional climate conditions</li>
-                        <li>Historical crop performance data</li>
-                    </ul>
+            <div class="results-column">
+                <div class="results-section" id="resultsSection" style="display: none;">
+                    <h2><i class="fas fa-chart-bar"></i> Recommended Crops</h2>
+                    <div id="recommendationsResults"></div>
                 </div>
 
-                <div class="info-card">
-                    <h3><i class="fas fa-lightbulb"></i> Tips for Success</h3>
-                    <ul>
-                        <li>Consider crop rotation for soil health</li>
-                        <li>Start with crops you're familiar with</li>
-                        <li>Diversify to reduce risk</li>
-                        <li>Check local market demand</li>
-                        <li>Ensure water availability matches crop needs</li>
-                    </ul>
+                <div class="info-section" id="infoSection">
+                    <div class="info-card">
+                        <h3><i class="fas fa-info-circle"></i> How It Works</h3>
+                        <p>Our AI-powered crop advisor analyzes multiple factors including:</p>
+                        <ul>
+                            <li>Soil composition and pH levels</li>
+                            <li>Seasonal weather patterns</li>
+                            <li>Expected rainfall amounts</li>
+                            <li>Regional climate conditions</li>
+                            <li>Historical crop performance data</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-card">
+                        <h3><i class="fas fa-lightbulb"></i> Tips for Success</h3>
+                        <ul>
+                            <li>Consider crop rotation for soil health</li>
+                            <li>Start with crops you're familiar with</li>
+                            <li>Diversify to reduce risk</li>
+                            <li>Check local market demand</li>
+                            <li>Ensure water availability matches crop needs</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
+
+<style>
+.recommendations-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.results-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-height: 100px;
+}
+
+.input-section {
+    position: sticky;
+    top: 100px;
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: var(--shadow-lg);
+    height: fit-content;
+}
+
+.results-section {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 1024px) {
+    .recommendations-container {
+        grid-template-columns: 1fr;
+    }
+    .input-section {
+        position: relative;
+        top: 0;
+    }
+}
+</style>
 
 <script>
 document.getElementById('recommendationForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(this);
     const resultsSection = document.getElementById('resultsSection');
     const resultsDiv = document.getElementById('recommendationsResults');
-    
-    resultsDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Analyzing...</div>';
+    const infoSection = document.getElementById('infoSection');
+
+    // Show loading spinner, hide info cards
+    resultsDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><br>Analyzing your farm conditions...</div>';
     resultsSection.style.display = 'block';
-    
+    infoSection.style.display = 'none';
+
+    // Scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
     try {
         const response = await fetch('{{ url_for("get_crop_recommendations") }}', {
             method: 'POST',
             body: formData
         });
-        
+
         const recommendations = await response.json();
-        
+
         let html = '<div class="crop-recommendations-grid">';
         recommendations.forEach(crop => {
             html += `
@@ -126,10 +178,17 @@ document.getElementById('recommendationForm').addEventListener('submit', async f
             `;
         });
         html += '</div>';
-        
+
         resultsDiv.innerHTML = html;
+
+        // Scroll again after content renders
+        setTimeout(() => {
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+
     } catch (error) {
-        resultsDiv.innerHTML = '<div class="error">Error loading recommendations. Please try again.</div>';
+        resultsDiv.innerHTML = '<div class="error"><i class="fas fa-exclamation-circle"></i> Error loading recommendations. Please try again.</div>';
+        infoSection.style.display = 'flex';
     }
 });
 </script>
