@@ -6,7 +6,7 @@
 <div class="page-container scheme-detail-page">
     <div class="container">
         <div class="breadcrumb">
-            <a href="{{ url_for('dashboard') }}">Dashboard</a> 
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
             <i class="fas fa-chevron-right"></i>
             <a href="{{ url_for('govt_schemes') }}">Government Schemes</a>
             <i class="fas fa-chevron-right"></i>
@@ -48,7 +48,9 @@
 
                 <div class="detail-section action-section">
                     {% if scheme.website_link %}
-                    <a href="{{ scheme.website_link }}" target="_blank" class="btn btn-primary btn-lg">
+                    {% set link = scheme.website_link %}
+                    {% if not link.startswith('http') %}{% set link = 'https://' + link %}{% endif %}
+                    <a href="{{ link }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
                         <i class="fas fa-external-link-alt"></i> Visit Official Website
                     </a>
                     {% endif %}
@@ -299,16 +301,16 @@
         flex-direction: column;
         text-align: center;
         align-items: center;
-    }
-    
+    }F
+
     .scheme-detail-header h1 {
         font-size: 1.8rem;
     }
-    
+
     .scheme-detail-body {
         padding: 2rem 1.5rem;
     }
-    
+
     .action-section {
         flex-direction: column;
     }

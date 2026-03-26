@@ -90,6 +90,7 @@ body {
 
 .dropdown {
     position: relative;
+    display: inline-block; /* Added to ensure the container wraps the button correctly */
 }
 
 .dropbtn {
@@ -105,9 +106,22 @@ body {
     min-width: 200px;
     box-shadow: 0 8px 30px rgba(0,0,0,0.3);
     border-radius: 8px;
-    margin-top: 0.5rem;
-    z-index: 1000;
+    margin-top: 10px; /* Standardized gap */
+    z-index: 9999;    /* High z-index to stay on top */
     border: 1px solid var(--border-color);
+}
+
+/* --- THE FIX: THE INVISIBLE BRIDGE --- */
+.dropdown-content::before {
+    content: "";
+    position: absolute;
+    top: -15px;       /* Larger than the margin to ensure overlap */
+    left: 0;
+    width: 100%;
+    height: 15px;     /* Covers the 10px gap plus a little extra */
+    display: block;
+    background: transparent; /* Change 'transparent' to 'red' to TEST if it's there */
+    z-index: 10000;   /* Must be higher than everything else */
 }
 
 .dropdown:hover .dropdown-content {
@@ -115,7 +129,7 @@ body {
 }
 
 .dropdown-content a {
-    color: #000000 !important; /* Black text color */
+    color: #000000 !important;
     display: block;
     padding: 0.75rem 1rem;
     text-decoration: none;
@@ -129,7 +143,7 @@ body {
 
 .dropdown-content a:hover {
     background: var(--primary-color);
-    color: #ffffff !important; /* White text on hover */
+    color: #ffffff !important;
 }
 
 .dropdown-content a:first-child:hover {
@@ -143,13 +157,13 @@ body {
 /* Specific styling for logout link */
 .dropdown-content a.logout-link,
 .dropdown-content a[href*="logout"] {
-    color: #000000 !important; /* Black text for logout */
+    color: #000000 !important;
 }
 
 .dropdown-content a.logout-link:hover,
 .dropdown-content a[href*="logout"]:hover {
     background: var(--primary-color);
-    color: #ffffff !important; /* White text on hover */
+    color: #ffffff !important;
 }
 .hamburger {
     display: none;

@@ -13,12 +13,12 @@
         <div class="schemes-filters">
             <h3><i class="fas fa-filter"></i> Filter by Category</h3>
             <div class="category-pills">
-                <a href="{{ url_for('govt_schemes', category='all') }}" 
+                <a href="{{ url_for('govt_schemes', category='all') }}"
                    class="pill {% if selected_category == 'all' %}active{% endif %}">
                     <i class="fas fa-th"></i> All Schemes
                 </a>
                 {% for category in categories %}
-                <a href="{{ url_for('govt_schemes', category=category) }}" 
+                <a href="{{ url_for('govt_schemes', category=category) }}"
                    class="pill {% if selected_category == category %}active{% endif %}">
                     {% if category == 'Financial Assistance' %}
                         <i class="fas fa-rupee-sign"></i>
@@ -54,14 +54,14 @@
                 </div>
                 <h3>{{ scheme.scheme_name }}</h3>
                 <p class="scheme-description">{{ scheme.description[:150] }}...</p>
-                
+
                 <div class="scheme-info">
                     <div class="info-item">
                         <i class="fas fa-building"></i>
                         <span>{{ scheme.ministry }}</span>
                     </div>
                 </div>
-                
+
                 <div class="scheme-actions">
                     <a href="{{ url_for('scheme_detail', scheme_id=scheme.id) }}" class="btn btn-primary btn-sm">
                         <i class="fas fa-info-circle"></i> View Details
@@ -263,6 +263,29 @@
 .scheme-actions {
     display: flex;
     gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.scheme-actions .btn-secondary {
+    background: transparent;
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+.scheme-actions .btn-secondary:hover {
+    background: var(--primary-color) !important;
+    color: var(--white) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.scheme-card:hover .scheme-actions .btn-secondary {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-flex !important;
 }
 
 .schemes-info-section {
@@ -299,11 +322,11 @@
     .category-pills {
         flex-direction: column;
     }
-    
+
     .schemes-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .scheme-actions {
         flex-direction: column;
     }

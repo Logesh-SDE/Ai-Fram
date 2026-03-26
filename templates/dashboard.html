@@ -12,39 +12,28 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-microscope"></i>
-                </div>
+                <div class="stat-icon"><i class="fas fa-microscope"></i></div>
                 <div class="stat-content">
                     <h3>{{ total_scans }}</h3>
                     <p>Total Scans</p>
                 </div>
             </div>
-            
             <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-leaf"></i>
-                </div>
+                <div class="stat-icon"><i class="fas fa-leaf"></i></div>
                 <div class="stat-content">
                     <h3>{{ recent_scans|length }}</h3>
                     <p>Recent Scans</p>
                 </div>
             </div>
-            
             <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-book"></i>
-                </div>
+                <div class="stat-icon"><i class="fas fa-book"></i></div>
                 <div class="stat-content">
                     <h3>{{ recent_activities|length }}</h3>
                     <p>Recent Activities</p>
                 </div>
             </div>
-            
             <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
+                <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
                 <div class="stat-content">
                     <h3>Active</h3>
                     <p>Farm Status</p>
@@ -65,8 +54,8 @@
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>Crop Type</th>
                                         <th>Disease</th>
+                                        <th>Severity</th>
                                         <th>Confidence</th>
                                         <th>Action</th>
                                     </tr>
@@ -75,10 +64,19 @@
                                     {% for scan in recent_scans %}
                                     <tr>
                                         <td>{{ scan.scan_date[:16] }}</td>
-                                        <td>{{ scan.crop_type }}</td>
                                         <td>
                                             <span class="badge {% if scan.disease_detected == 'Healthy' %}badge-success{% else %}badge-warning{% endif %}">
-                                                {{ scan.disease_detected }}
+                                                {{ scan.disease_detected | capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span style="font-weight:600; color:
+                                                {% if scan.crop_type == 'Critical' %}#d32f2f
+                                                {% elif scan.crop_type == 'High' %}#f57c00
+                                                {% elif scan.crop_type == 'Moderate' %}#fbc02d
+                                                {% elif scan.crop_type == 'Low' or scan.crop_type == 'None' %}#388e3c
+                                                {% else %}#555{% endif %};">
+                                                {{ scan.crop_type | capitalize if scan.crop_type else 'N/A' }}
                                             </span>
                                         </td>
                                         <td>{{ (scan.confidence * 100)|round(1) }}%</td>
@@ -112,9 +110,7 @@
                         <div class="activity-list">
                             {% for activity in recent_activities %}
                             <div class="activity-item">
-                                <div class="activity-icon">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
+                                <div class="activity-icon"><i class="fas fa-check-circle"></i></div>
                                 <div class="activity-content">
                                     <h4>{{ activity.activity_type }}</h4>
                                     <p>{{ activity.crop_type }} - {{ activity.description }}</p>
@@ -138,20 +134,16 @@
             <h2>Quick Actions</h2>
             <div class="actions-grid">
                 <a href="{{ url_for('disease_detection') }}" class="action-card">
-                    <i class="fas fa-camera"></i>
-                    <span>Scan Crop</span>
+                    <i class="fas fa-camera"></i><span>Scan Crop</span>
                 </a>
                 <a href="{{ url_for('weather') }}" class="action-card">
-                    <i class="fas fa-cloud-sun"></i>
-                    <span>Check Weather</span>
+                    <i class="fas fa-cloud-sun"></i><span>Check Weather</span>
                 </a>
                 <a href="{{ url_for('crop_recommendations') }}" class="action-card">
-                    <i class="fas fa-leaf"></i>
-                    <span>Get Advice</span>
+                    <i class="fas fa-leaf"></i><span>Get Advice</span>
                 </a>
                 <a href="{{ url_for('market_prices') }}" class="action-card">
-                    <i class="fas fa-dollar-sign"></i>
-                    <span>Market Prices</span>
+                    <i class="fas fa-dollar-sign"></i><span>Market Prices</span>
                 </a>
             </div>
         </div>

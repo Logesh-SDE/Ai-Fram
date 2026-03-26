@@ -12,30 +12,59 @@
 
         <div class="result-container">
             <div class="result-image">
-                <img src="{{ url_for('static', filename=scan.image_path.replace('static/', '')) }}" alt="Scanned crop">
+                <img src="{{ url_for('static', filename=scan.image_path) }}" alt="Scanned crop">
             </div>
 
             <div class="result-details">
                 <div class="result-card">
                     <h2>Detection Results</h2>
                     <div class="result-info">
+
                         <div class="info-item">
-                            <span class="label">Crop Type:</span>
-                            <span class="value">{{ scan.crop_type }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Disease Detected:</span>
+                            <span class="label"><i class="fas fa-bug"></i> Disease Detected:</span>
                             <span class="value disease-name {% if scan.disease_detected == 'Healthy' %}healthy{% else %}diseased{% endif %}">
-                                {{ scan.disease_detected }}
+                                {{ scan.disease_detected | capitalize }}
                             </span>
                         </div>
+
                         <div class="info-item">
-                            <span class="label">Confidence Level:</span>
+                            <span class="label"><i class="fas fa-exclamation-circle"></i> Severity:</span>
+                            <span class="value" style="font-weight:700; color:
+                                {% if severity == 'Critical' %}#d32f2f
+                                {% elif severity == 'High' %}#f57c00
+                                {% elif severity == 'Moderate' %}#fbc02d
+                                {% elif severity in ['Low', 'None'] %}#388e3c
+                                {% else %}#555{% endif %};">
+                                {% if severity and severity != 'N/A' %}{{ severity }}{% else %}—{% endif %}
+                            </span>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="label"><i class="fas fa-clock"></i> Treatment Urgency:</span>
+                            <span class="value">
+                                {% if treatment_urgency and treatment_urgency != 'N/A' %}{{ treatment_urgency }}{% else %}—{% endif %}
+                            </span>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="label"><i class="fas fa-wind"></i> Spread Risk:</span>
+                            <span class="value" style="font-weight:600; color:
+                                {% if spread_risk == 'High' %}#d32f2f
+                                {% elif spread_risk == 'Medium' %}#f57c00
+                                {% elif spread_risk in ['Low', 'None'] %}#388e3c
+                                {% else %}#555{% endif %};">
+                                {% if spread_risk and spread_risk != 'N/A' %}{{ spread_risk }}{% else %}—{% endif %}
+                            </span>
+                        </div>
+
+                        <div class="info-item">
+                            <span class="label"><i class="fas fa-chart-bar"></i> Confidence Level:</span>
                             <span class="value">{{ (scan.confidence * 100)|round(1) }}%</span>
                         </div>
                         <div class="confidence-bar">
                             <div class="confidence-fill" style="width: {{ (scan.confidence * 100)|round(1) }}%"></div>
                         </div>
+
                     </div>
                 </div>
 
@@ -44,10 +73,7 @@
                     {% if recommendations %}
                         <ul class="recommendation-list">
                             {% for rec in recommendations %}
-                            <li>
-                                <i class="fas fa-check-circle"></i>
-                                {{ rec }}
-                            </li>
+                            <li><i class="fas fa-check-circle"></i> {{ rec }}</li>
                             {% endfor %}
                         </ul>
                     {% else %}
@@ -60,8 +86,8 @@
                     <h2><i class="fas fa-exclamation-triangle"></i> Important Notes</h2>
                     <ul>
                         <li>Take immediate action to prevent disease spread</li>
-                        <li>Monitor neighboring plants for similar symptoms</li>
-                        <li>Consult with agricultural experts for severe cases</li>
+                        <li>Monitor neighbouring plants for similar symptoms</li>
+                        <li>Consult agricultural experts for severe cases</li>
                         <li>Maintain proper farm hygiene and sanitation</li>
                     </ul>
                 </div>

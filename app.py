@@ -28,11 +28,12 @@ os.makedirs('static/css', exist_ok=True)
 os.makedirs('static/js', exist_ok=True)
 os.makedirs('templates', exist_ok=True)
 
+
 # Database initialization
 def init_db():
     conn = sqlite3.connect('aifarm.db')
     c = conn.cursor()
-    
+
     # Users table
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +45,7 @@ def init_db():
                   farm_size REAL,
                   is_admin INTEGER DEFAULT 0,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
+
     # Crop scans table
     c.execute('''CREATE TABLE IF NOT EXISTS crop_scans
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +57,7 @@ def init_db():
                   recommendations TEXT,
                   scan_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (user_id) REFERENCES users (id))''')
-    
+
     # Weather data table
     c.execute('''CREATE TABLE IF NOT EXISTS weather_data
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,7 +69,7 @@ def init_db():
                   weather_condition TEXT,
                   fetch_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (user_id) REFERENCES users (id))''')
-    
+
     # Crop recommendations table
     c.execute('''CREATE TABLE IF NOT EXISTS crop_recommendations
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,7 +79,7 @@ def init_db():
                   recommended_crops TEXT,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (user_id) REFERENCES users (id))''')
-    
+
     # Market prices table
     c.execute('''CREATE TABLE IF NOT EXISTS market_prices
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,7 +87,7 @@ def init_db():
                   price_per_kg REAL,
                   market_location TEXT,
                   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
+
     # Farm activities log
     c.execute('''CREATE TABLE IF NOT EXISTS farm_activities
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +97,7 @@ def init_db():
                   description TEXT,
                   activity_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (user_id) REFERENCES users (id))''')
-    
+
     # Government schemes table
     c.execute('''CREATE TABLE IF NOT EXISTS govt_schemes
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,7 +110,7 @@ def init_db():
                   website_link TEXT,
                   category TEXT,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
+
     # Admin logs table
     c.execute('''CREATE TABLE IF NOT EXISTS admin_logs
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,7 +119,7 @@ def init_db():
                   details TEXT,
                   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (admin_id) REFERENCES users (id))''')
-    
+
     # Chat history table
     c.execute('''CREATE TABLE IF NOT EXISTS chat_history
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,13 +128,14 @@ def init_db():
                   response TEXT,
                   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (user_id) REFERENCES users (id))''')
-    
+
     conn.commit()
     conn.close()
-    
+
     # Add default admin user and schemes
     add_default_admin()
     add_government_schemes()
+
 
 # Login required decorator
 def login_required(f):
@@ -143,7 +145,9 @@ def login_required(f):
             flash('Please log in to access this page.', 'warning')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 # Admin required decorator
 def admin_required(f):
@@ -152,24 +156,26 @@ def admin_required(f):
         if 'user_id' not in session:
             flash('Please log in to access this page.', 'warning')
             return redirect(url_for('login'))
-        
+
         conn = sqlite3.connect('aifarm.db')
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute('SELECT is_admin FROM users WHERE id = ?', (session['user_id'],))
         user = c.fetchone()
         conn.close()
-        
+
         if not user or not user['is_admin']:
             flash('Access denied. Admin privileges required.', 'error')
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 # Add default admin user
 def add_default_admin():
     try:
-        conn = sqlite3app.connect('aifarm.db')
+        conn = sqlite3.connect('aifarm.db')
         c = conn.cursor()
         c.execute('SELECT id FROM users WHERE username = ?', ('admin',))
         if not c.fetchone():
@@ -181,6 +187,7 @@ def add_default_admin():
         conn.close()
     except Exception as e:
         print(f"Error creating admin: {e}")
+
 
 # Add government schemes
 def add_government_schemes():
@@ -306,27 +313,29 @@ def add_government_schemes():
             'category': 'Horticulture'
         }
     ]
-    
+
     try:
         conn = sqlite3.connect('aifarm.db')
         c = conn.cursor()
-        c.execute('SELECT COUNT(*) as count FROM govt_schemes')
-        if c.fetchone()[0] == 0:
-            for scheme in schemes:
-                c.execute('''INSERT INTO govt_schemes 
-                             (scheme_name, description, eligibility, benefits, how_to_apply, ministry, website_link, category)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                          (scheme['scheme_name'], scheme['description'], scheme['eligibility'], 
-                           scheme['benefits'], scheme['how_to_apply'], scheme['ministry'],
-                           scheme['website_link'], scheme['category']))
-            conn.commit()
+        # Always wipe and reinsert so DB stays in sync with code (removes deleted schemes)
+        c.execute('DELETE FROM govt_schemes')
+        for scheme in schemes:
+            c.execute('''INSERT INTO govt_schemes 
+                         (scheme_name, description, eligibility, benefits, how_to_apply, ministry, website_link, category)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                      (scheme['scheme_name'], scheme['description'], scheme['eligibility'],
+                       scheme['benefits'], scheme['how_to_apply'], scheme['ministry'],
+                       scheme['website_link'], scheme['category']))
+        conn.commit()
         conn.close()
     except Exception as e:
         print(f"Error adding schemes: {e}")
 
+
 # Helper function to check allowed file
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
 
 # Routes
 @app.route('/')
@@ -334,6 +343,7 @@ def index():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -344,13 +354,13 @@ def register():
         full_name = request.form.get('full_name')
         farm_location = request.form.get('farm_location')
         farm_size = request.form.get('farm_size')
-        
+
         if not all([username, email, password]):
             flash('Please fill in all required fields.', 'error')
             return redirect(url_for('register'))
-        
+
         hashed_password = generate_password_hash(password)
-        
+
         try:
             conn = sqlite3.connect('aifarm.db')
             c = conn.cursor()
@@ -359,41 +369,43 @@ def register():
                       (username, email, hashed_password, full_name, farm_location, farm_size))
             conn.commit()
             conn.close()
-            
+
             flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
         except sqlite3.IntegrityError:
             flash('Username or email already exists.', 'error')
             return redirect(url_for('register'))
-    
+
     return render_template('register.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
+
         conn = sqlite3.connect('aifarm.db')
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute('SELECT * FROM users WHERE username = ?', (username,))
         user = c.fetchone()
         conn.close()
-        
+
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['is_admin'] = user['is_admin']
             flash(f'Welcome back, {user["username"]}!', 'success')
-            
+
             if user['is_admin']:
                 return redirect(url_for('admin_panel'))
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password.', 'error')
-    
+
     return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
@@ -401,33 +413,35 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
 
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     conn = sqlite3.connect('aifarm.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    
+
     # Get recent scans
     c.execute('''SELECT * FROM crop_scans WHERE user_id = ? 
                  ORDER BY scan_date DESC LIMIT 5''', (session['user_id'],))
     recent_scans = c.fetchall()
-    
+
     # Get total scans count
     c.execute('SELECT COUNT(*) as count FROM crop_scans WHERE user_id = ?', (session['user_id'],))
     total_scans = c.fetchone()['count']
-    
+
     # Get recent activities
     c.execute('''SELECT * FROM farm_activities WHERE user_id = ? 
                  ORDER BY activity_date DESC LIMIT 5''', (session['user_id'],))
     recent_activities = c.fetchall()
-    
+
     conn.close()
-    
-    return render_template('dashboard.html', 
-                         recent_scans=recent_scans,
-                         total_scans=total_scans,
-                         recent_activities=recent_activities)
+
+    return render_template('dashboard.html',
+                           recent_scans=recent_scans,
+                           total_scans=total_scans,
+                           recent_activities=recent_activities)
+
 
 @app.route('/disease-detection', methods=['GET', 'POST'])
 @login_required
@@ -436,37 +450,38 @@ def disease_detection():
         if 'crop_image' not in request.files:
             flash('No file uploaded.', 'error')
             return redirect(request.url)
-        
+
         file = request.files['crop_image']
         crop_type = request.form.get('crop_type', 'Unknown')
-        
+
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"{session['user_id']}_{timestamp}_{filename}"
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            
+
             # Simulate AI disease detection (replace with actual AI model)
             disease_result = simulate_disease_detection(filepath, crop_type)
-            
+
             # Save to database
             conn = sqlite3.connect('aifarm.db')
             c = conn.cursor()
             c.execute('''INSERT INTO crop_scans 
                          (user_id, image_path, crop_type, disease_detected, confidence, recommendations)
                          VALUES (?, ?, ?, ?, ?, ?)''',
-                      (session['user_id'], filepath, crop_type, 
+                      (session['user_id'], filepath, crop_type,
                        disease_result['disease'], disease_result['confidence'],
                        json.dumps(disease_result['recommendations'])))
             scan_id = c.lastrowid
             conn.commit()
             conn.close()
-            
+
             flash('Crop scan completed successfully!', 'success')
             return redirect(url_for('scan_result', scan_id=scan_id))
-    
+
     return render_template('disease_detection.html')
+
 
 @app.route('/scan-result/<int:scan_id>')
 @login_required
@@ -474,18 +489,19 @@ def scan_result(scan_id):
     conn = sqlite3.connect('aifarm.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('SELECT * FROM crop_scans WHERE id = ? AND user_id = ?', 
+    c.execute('SELECT * FROM crop_scans WHERE id = ? AND user_id = ?',
               (scan_id, session['user_id']))
     scan = c.fetchone()
     conn.close()
-    
+
     if not scan:
         flash('Scan not found.', 'error')
         return redirect(url_for('disease_detection'))
-    
+
     recommendations = json.loads(scan['recommendations']) if scan['recommendations'] else []
-    
+
     return render_template('scan_result.html', scan=scan, recommendations=recommendations)
+
 
 @app.route('/weather')
 @login_required
@@ -493,7 +509,7 @@ def weather():
     # Check if we have coordinates in session from GPS
     location = session.get('user_location')
     show_prompt = True
-    
+
     if not location:
         # Try user's profile location
         conn = sqlite3.connect('aifarm.db')
@@ -502,19 +518,20 @@ def weather():
         c.execute('SELECT farm_location FROM users WHERE id = ?', (session['user_id'],))
         user = c.fetchone()
         conn.close()
-        
+
         if user and user['farm_location']:
             location = user['farm_location']
             show_prompt = False
     else:
         show_prompt = False
-    
+
     # Get weather data if we have a location
     weather_data = None
     if location:
         weather_data = get_real_weather_data(location)
-    
+
     return render_template('weather.html', weather=weather_data, location=location, show_location_prompt=show_prompt)
+
 
 @app.route('/weather/by-coordinates', methods=['POST'])
 @login_required
@@ -524,23 +541,24 @@ def weather_by_coordinates():
         data = request.get_json()
         lat = data.get('lat')
         lon = data.get('lon')
-        
+
         if not lat or not lon:
             return jsonify({'error': 'Coordinates required'}), 400
-        
+
         # Get weather by coordinates
         weather_data = get_weather_by_coordinates(lat, lon)
-        
+
         # Store location in session
         if weather_data and 'location' in weather_data:
             session['user_location'] = weather_data['location']
             session.modified = True
-        
+
         return jsonify({'success': True, 'location': weather_data.get('location')})
-        
+
     except Exception as e:
         print(f"Error in weather_by_coordinates: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/weather/update-location', methods=['POST'])
 @login_required
@@ -551,10 +569,12 @@ def update_weather_location():
         return jsonify(weather_data)
     return jsonify({'error': 'Location required'}), 400
 
+
 @app.route('/crop-recommendations')
 @login_required
 def crop_recommendations():
     return render_template('crop_recommendations.html')
+
 
 @app.route('/get-crop-recommendations', methods=['POST'])
 @login_required
@@ -562,10 +582,10 @@ def get_crop_recommendations():
     soil_type = request.form.get('soil_type')
     season = request.form.get('season')
     rainfall = request.form.get('rainfall')
-    
+
     # Simulate AI crop recommendations
     recommendations = simulate_crop_recommendations(soil_type, season, rainfall)
-    
+
     # Save to database
     conn = sqlite3.connect('aifarm.db')
     c = conn.cursor()
@@ -574,8 +594,9 @@ def get_crop_recommendations():
               (session['user_id'], soil_type, season, json.dumps(recommendations)))
     conn.commit()
     conn.close()
-    
+
     return jsonify(recommendations)
+
 
 @app.route('/market-prices')
 @login_required
@@ -583,11 +604,11 @@ def market_prices():
     conn = sqlite3.connect('aifarm.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    
+
     # Check if prices need updating (update if older than 1 day or no prices)
     c.execute('SELECT COUNT(*) as count FROM market_prices')
     count = c.fetchone()['count']
-    
+
     needs_update = False
     if count == 0:
         needs_update = True
@@ -599,24 +620,25 @@ def market_prices():
             last_update_time = datetime.strptime(last_update['updated_at'], '%Y-%m-%d %H:%M:%S')
             if datetime.now() - last_update_time > timedelta(hours=24):
                 needs_update = True
-    
+
     if needs_update:
         conn.close()
         add_sample_market_prices()
         conn = sqlite3.connect('aifarm.db')
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-    
+
     c.execute('SELECT * FROM market_prices ORDER BY crop_name')
     prices = c.fetchall()
-    
+
     # Get today's date for display
     from datetime import datetime
     today_date = datetime.now().strftime('%B %d, %Y')
-    
+
     conn.close()
-    
+
     return render_template('market_prices.html', prices=prices, today_date=today_date)
+
 
 @app.route('/market-prices/refresh', methods=['POST'])
 @login_required
@@ -626,6 +648,7 @@ def refresh_market_prices():
     flash('Market prices updated successfully!', 'success')
     return redirect(url_for('market_prices'))
 
+
 @app.route('/farm-log', methods=['GET', 'POST'])
 @login_required
 def farm_log():
@@ -633,7 +656,7 @@ def farm_log():
         activity_type = request.form.get('activity_type')
         crop_type = request.form.get('crop_type')
         description = request.form.get('description')
-        
+
         conn = sqlite3.connect('aifarm.db')
         c = conn.cursor()
         c.execute('''INSERT INTO farm_activities (user_id, activity_type, crop_type, description)
@@ -641,10 +664,10 @@ def farm_log():
                   (session['user_id'], activity_type, crop_type, description))
         conn.commit()
         conn.close()
-        
+
         flash('Activity logged successfully!', 'success')
         return redirect(url_for('farm_log'))
-    
+
     conn = sqlite3.connect('aifarm.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -652,8 +675,9 @@ def farm_log():
                  ORDER BY activity_date DESC''', (session['user_id'],))
     activities = c.fetchall()
     conn.close()
-    
+
     return render_template('farm_log.html', activities=activities)
+
 
 @app.route('/govt-schemes')
 @login_required
@@ -661,23 +685,24 @@ def govt_schemes():
     conn = sqlite3.connect('aifarm.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    
+
     category = request.args.get('category', 'all')
-    
+
     if category == 'all':
         c.execute('SELECT * FROM govt_schemes ORDER BY scheme_name')
     else:
         c.execute('SELECT * FROM govt_schemes WHERE category = ? ORDER BY scheme_name', (category,))
-    
+
     schemes = c.fetchall()
-    
+
     # Get unique categories
     c.execute('SELECT DISTINCT category FROM govt_schemes ORDER BY category')
     categories = [row['category'] for row in c.fetchall()]
-    
+
     conn.close()
-    
+
     return render_template('govt_schemes.html', schemes=schemes, categories=categories, selected_category=category)
+
 
 @app.route('/scheme/<int:scheme_id>')
 @login_required
@@ -688,12 +713,13 @@ def scheme_detail(scheme_id):
     c.execute('SELECT * FROM govt_schemes WHERE id = ?', (scheme_id,))
     scheme = c.fetchone()
     conn.close()
-    
+
     if not scheme:
         flash('Scheme not found.', 'error')
         return redirect(url_for('govt_schemes'))
-    
+
     return render_template('scheme_detail.html', scheme=scheme)
+
 
 @app.route('/admin')
 @admin_required
@@ -701,39 +727,40 @@ def admin_panel():
     conn = sqlite3.connect('aifarm.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    
+
     # Get statistics
     c.execute('SELECT COUNT(*) as count FROM users WHERE is_admin = 0')
     total_users = c.fetchone()['count']
-    
+
     c.execute('SELECT COUNT(*) as count FROM crop_scans')
     total_scans = c.fetchone()['count']
-    
+
     c.execute('SELECT COUNT(*) as count FROM farm_activities')
     total_activities = c.fetchone()['count']
-    
+
     c.execute('SELECT COUNT(*) as count FROM govt_schemes')
     total_schemes = c.fetchone()['count']
-    
+
     # Get recent users
     c.execute('SELECT * FROM users WHERE is_admin = 0 ORDER BY created_at DESC LIMIT 10')
     recent_users = c.fetchall()
-    
+
     # Get recent logs
     c.execute('''SELECT al.*, u.username FROM admin_logs al 
                  LEFT JOIN users u ON al.admin_id = u.id 
                  ORDER BY al.timestamp DESC LIMIT 10''')
     recent_logs = c.fetchall()
-    
+
     conn.close()
-    
-    return render_template('admin_panel.html', 
-                         total_users=total_users,
-                         total_scans=total_scans,
-                         total_activities=total_activities,
-                         total_schemes=total_schemes,
-                         recent_users=recent_users,
-                         recent_logs=recent_logs)
+
+    return render_template('admin_panel.html',
+                           total_users=total_users,
+                           total_scans=total_scans,
+                           total_activities=total_activities,
+                           total_schemes=total_schemes,
+                           recent_users=recent_users,
+                           recent_logs=recent_logs)
+
 
 @app.route('/admin/users')
 @admin_required
@@ -744,43 +771,45 @@ def admin_users():
     c.execute('SELECT * FROM users WHERE is_admin = 0 ORDER BY created_at DESC')
     users = c.fetchall()
     conn.close()
-    
+
     return render_template('admin_users.html', users=users)
+
 
 @app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
 @admin_required
 def admin_delete_user(user_id):
     conn = sqlite3.connect('aifarm.db')
     c = conn.cursor()
-    
+
     # Get user info before deletion
     c.execute('SELECT username FROM users WHERE id = ?', (user_id,))
     user = c.fetchone()
-    
+
     if not user:
         flash('User not found.', 'error')
         conn.close()
         return redirect(url_for('admin_users'))
-    
+
     username = user[0]
-    
+
     # Delete user and related data
     c.execute('DELETE FROM crop_scans WHERE user_id = ?', (user_id,))
     c.execute('DELETE FROM farm_activities WHERE user_id = ?', (user_id,))
     c.execute('DELETE FROM crop_recommendations WHERE user_id = ?', (user_id,))
     c.execute('DELETE FROM weather_data WHERE user_id = ?', (user_id,))
     c.execute('DELETE FROM users WHERE id = ?', (user_id,))
-    
+
     # Log admin action
     c.execute('''INSERT INTO admin_logs (admin_id, action, details)
                  VALUES (?, ?, ?)''',
               (session['user_id'], 'DELETE_USER', f'Deleted user: {username} (ID: {user_id})'))
-    
+
     conn.commit()
     conn.close()
-    
+
     flash(f'User {username} has been deleted successfully.', 'success')
     return redirect(url_for('admin_users'))
+
 
 @app.route('/admin/schemes')
 @admin_required
@@ -791,8 +820,9 @@ def admin_schemes():
     c.execute('SELECT * FROM govt_schemes ORDER BY scheme_name')
     schemes = c.fetchall()
     conn.close()
-    
+
     return render_template('admin_schemes.html', schemes=schemes)
+
 
 @app.route('/admin/analytics')
 @admin_required
@@ -800,56 +830,58 @@ def admin_analytics():
     conn = sqlite3.connect('aifarm.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    
+
     # User growth
     c.execute('''SELECT DATE(created_at) as date, COUNT(*) as count 
                  FROM users WHERE is_admin = 0 
                  GROUP BY DATE(created_at) 
                  ORDER BY date DESC LIMIT 30''')
     user_growth = c.fetchall()
-    
+
     # Scan statistics
     c.execute('''SELECT crop_type, COUNT(*) as count 
                  FROM crop_scans 
                  GROUP BY crop_type 
                  ORDER BY count DESC''')
     scan_stats = c.fetchall()
-    
+
     # Activity statistics
     c.execute('''SELECT activity_type, COUNT(*) as count 
                  FROM farm_activities 
                  GROUP BY activity_type 
                  ORDER BY count DESC''')
     activity_stats = c.fetchall()
-    
+
     conn.close()
-    
+
     return render_template('admin_analytics.html',
-                         user_growth=user_growth,
-                         scan_stats=scan_stats,
-                         activity_stats=activity_stats)
+                           user_growth=user_growth,
+                           scan_stats=scan_stats,
+                           activity_stats=activity_stats)
+
 
 @app.route('/profile/delete-account', methods=['POST'])
 @login_required
 def delete_account():
     user_id = session['user_id']
-    
+
     conn = sqlite3.connect('aifarm.db')
     c = conn.cursor()
-    
+
     # Delete user data
     c.execute('DELETE FROM crop_scans WHERE user_id = ?', (user_id,))
     c.execute('DELETE FROM farm_activities WHERE user_id = ?', (user_id,))
     c.execute('DELETE FROM crop_recommendations WHERE user_id = ?', (user_id,))
     c.execute('DELETE FROM weather_data WHERE user_id = ?', (user_id,))
     c.execute('DELETE FROM users WHERE id = ?', (user_id,))
-    
+
     conn.commit()
     conn.close()
-    
+
     session.clear()
     flash('Your account has been deleted successfully.', 'success')
     return redirect(url_for('index'))
+
 
 @app.route('/profile')
 @login_required
@@ -860,8 +892,9 @@ def profile():
     c.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],))
     user = c.fetchone()
     conn.close()
-    
+
     return render_template('profile.html', user=user)
+
 
 # ============================================
 # FERTILIZER CALCULATOR
@@ -889,10 +922,12 @@ SOIL_FACTORS = {
     'chalky': 1.1
 }
 
+
 @app.route('/fertilizer-calculator')
 @login_required
 def fertilizer_calculator():
     return render_template('fertilizer_calculator.html')
+
 
 @app.route('/api/fertilizer/calculate', methods=['POST'])
 @login_required
@@ -902,18 +937,18 @@ def calculate_fertilizer():
         crop_type = data.get('cropType', '').lower()
         soil_type = data.get('soilType', '').lower()
         area = float(data.get('area', 0))
-        
+
         if crop_type not in FERTILIZER_DATA or area <= 0:
             return jsonify({'error': 'Invalid input'}), 400
-        
+
         base = FERTILIZER_DATA[crop_type]
         factor = SOIL_FACTORS.get(soil_type, 1.0)
-        
+
         nitrogen = round(base['N'] * factor * area, 2)
         phosphorus = round(base['P'] * factor * area, 2)
         potassium = round(base['K'] * factor * area, 2)
         total_cost = round((nitrogen + phosphorus + potassium) * base['cost'], 2)
-        
+
         result = {
             'nitrogen': nitrogen,
             'phosphorus': phosphorus,
@@ -926,10 +961,11 @@ def calculate_fertilizer():
                 {'stage': 'Second top dress', 'percentage': 25, 'timing': '60 days after planting'}
             ]
         }
-        
+
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 # ============================================
 # AI CHATBOT - IMPROVED WITH FALLBACK
@@ -940,23 +976,25 @@ def calculate_fertilizer():
 def chatbot():
     return render_template('chatbot.html')
 
+
 @app.route('/api/chatbot/message', methods=['POST'])
 @login_required
 def chatbot_message():
     try:
         data = request.get_json()
         user_message = data.get('message', '').strip()
-        
+
         print(f"Received message: {user_message}")  # Debug log
-        
+
         if not user_message:
             return jsonify({'error': 'Message required'}), 400
-        
+
         # Use environment variable for API key (more secure)
-        api_key = os.environ.get('OPENROUTER_API_KEY', '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')
-        
+        api_key = os.environ.get('OPENROUTER_API_KEY',
+                                 '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')
+
         print("Calling OpenRouter API...")  # Debug log
-        
+
         # Call OpenRouter API with better error handling
         try:
             response = requests.post(
@@ -986,29 +1024,29 @@ def chatbot_message():
                 },
                 timeout=30
             )
-            
+
             print(f"API Response Status: {response.status_code}")  # Debug log
-            
+
             if response.status_code != 200:
                 error_msg = response.text
                 print(f"API Error: {error_msg}")
-                
+
                 # Fallback to rule-based responses
                 ai_response = generate_fallback_response(user_message)
             else:
                 response_data = response.json()
                 ai_response = response_data['choices'][0]['message']['content']
-            
+
         except requests.exceptions.Timeout:
             print("API Timeout!")
             ai_response = generate_fallback_response(user_message)
-            
+
         except requests.exceptions.RequestException as e:
             print(f"Request Error: {str(e)}")
             ai_response = generate_fallback_response(user_message)
-        
+
         print(f"AI Response: {ai_response[:100]}...")  # Debug log (truncated)
-        
+
         # Save to database
         conn = sqlite3.connect('aifarm.db')
         c = conn.cursor()
@@ -1016,38 +1054,39 @@ def chatbot_message():
                   (session['user_id'], user_message, ai_response))
         conn.commit()
         conn.close()
-        
+
         return jsonify({'response': ai_response}), 200
-        
+
     except Exception as e:
         print(f"General Error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'An error occurred. Please try again.'}), 500
 
+
 def generate_fallback_response(message):
     """Generate rule-based responses when API fails"""
     message_lower = message.lower()
-    
+
     # Weather queries
     if any(word in message_lower for word in ['weather', 'rain', 'temperature', 'climate']):
         return """I recommend checking the Weather section in the app for real-time weather data. 
-        
+
 Based on weather conditions:
 - If rain is expected: Delay pesticide application and check drainage
 - If hot weather: Increase irrigation and apply mulch
 - Monitor weather daily for best farming decisions"""
-    
+
     # Price queries
     elif any(word in message_lower for word in ['price', 'market', 'sell', 'cost']):
         return """Check the Market Prices section for current crop rates.
-        
+
 Tips for better prices:
 - Sell during peak demand seasons
 - Store crops properly to reduce spoilage
 - Consider joining farmer cooperatives
 - Use e-NAM platform for better price discovery"""
-    
+
     # PM-KISAN queries
     elif 'pm-kisan' in message_lower or 'pmkisan' in message_lower or 'pm kisan' in message_lower:
         return """PM-KISAN provides ₹6000/year to farmers in 3 installments.
@@ -1057,7 +1096,7 @@ Benefits: ₹2000 per installment (3 times/year)
 How to apply: Visit pmkisan.gov.in with Aadhaar and land records
 
 Check the Government Schemes section for more details!"""
-    
+
     # PMFBY queries
     elif 'pmfby' in message_lower or 'fasal bima' in message_lower or 'crop insurance' in message_lower:
         return """Pradhan Mantri Fasal Bima Yojana (PMFBY) provides crop insurance.
@@ -1067,7 +1106,7 @@ Premium: Subsidized by government
 Apply: Through banks, CSC centers, or online at pmfby.gov.in
 
 Check Government Schemes section for full details!"""
-    
+
     # Fertilizer queries
     elif any(word in message_lower for word in ['fertilizer', 'fertiliser', 'npk', 'urea', 'manure']):
         return """Use the Fertilizer Calculator in the app for crop-specific recommendations.
@@ -1078,7 +1117,7 @@ General tips:
 - Apply in split doses (base, top-dress)
 - Follow recommended dosages to avoid over-fertilization
 - Consider organic alternatives like compost"""
-    
+
     # Disease/pest queries
     elif any(word in message_lower for word in ['disease', 'pest', 'insect', 'fungus', 'leaf', 'spot', 'blight']):
         return """Use the Disease Detection feature to scan your crops!
@@ -1089,7 +1128,7 @@ General advice:
 - Use appropriate pesticides/fungicides
 - Practice crop rotation annually
 - Monitor crops regularly for early detection"""
-    
+
     # Crop recommendations
     elif any(word in message_lower for word in ['crop', 'plant', 'grow', 'cultivate', 'sow', 'which crop']):
         return """Visit the Crop Advisor section for personalized recommendations based on:
@@ -1101,7 +1140,7 @@ Popular crops by season:
 - Summer: Tomato, Corn, Cucumber, Watermelon
 - Winter: Wheat, Peas, Cabbage, Cauliflower
 - Monsoon: Rice, Cotton, Sugarcane, Soybean"""
-    
+
     # Irrigation queries
     elif any(word in message_lower for word in ['water', 'irrigation', 'drip', 'sprinkler']):
         return """Irrigation tips for better water management:
@@ -1113,7 +1152,7 @@ Popular crops by season:
 - Install rain sensors for automated systems
 
 Check PM-KISAN Sinchai Yojana for subsidy on irrigation equipment!"""
-    
+
     # Greeting
     elif any(word in message_lower for word in ['hello', 'hi', 'hey', 'namaste']):
         return """Hello! I'm your AI farming assistant. I can help you with:
@@ -1126,7 +1165,7 @@ Check PM-KISAN Sinchai Yojana for subsidy on irrigation equipment!"""
 📜 Government schemes
 
 What would you like to know about?"""
-    
+
     # Default response
     else:
         return """I'm here to help with:
@@ -1139,6 +1178,7 @@ What would you like to know about?"""
 📜 Government schemes (PM-KISAN, PMFBY, KCC, etc.)
 
 Please ask me a specific question or use the quick question buttons below!"""
+
 
 @app.route('/api/chatbot/history', methods=['GET'])
 @login_required
@@ -1156,6 +1196,7 @@ def chat_history():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 # Real Weather API Integration
 def get_real_weather_data(location):
     """
@@ -1167,7 +1208,7 @@ def get_real_weather_data(location):
         if not OPENWEATHER_API_KEY or OPENWEATHER_API_KEY == 'your_api_key_here':
             print("OpenWeatherMap API key not configured. Using simulated data.")
             return simulate_weather_data()
-        
+
         # Get current weather
         current_url = f"{OPENWEATHER_BASE_URL}/weather"
         current_params = {
@@ -1175,15 +1216,15 @@ def get_real_weather_data(location):
             'appid': OPENWEATHER_API_KEY,
             'units': 'metric'
         }
-        
+
         current_response = requests.get(current_url, params=current_params, timeout=5)
-        
+
         if current_response.status_code != 200:
             print(f"Weather API error: {current_response.status_code}")
             return simulate_weather_data()
-        
+
         current_data = current_response.json()
-        
+
         # Get 5-day forecast
         forecast_url = f"{OPENWEATHER_BASE_URL}/forecast"
         forecast_params = {
@@ -1192,23 +1233,24 @@ def get_real_weather_data(location):
             'units': 'metric',
             'cnt': 40  # 5 days * 8 (3-hour intervals)
         }
-        
+
         forecast_response = requests.get(forecast_url, params=forecast_params, timeout=5)
-        
+
         if forecast_response.status_code != 200:
             # Use current data with simulated forecast
             return format_weather_data(current_data, None)
-        
+
         forecast_data = forecast_response.json()
-        
+
         return format_weather_data(current_data, forecast_data)
-        
+
     except requests.exceptions.RequestException as e:
         print(f"Weather API request failed: {e}")
         return simulate_weather_data()
     except Exception as e:
         print(f"Weather data processing error: {e}")
         return simulate_weather_data()
+
 
 def format_weather_data(current_data, forecast_data):
     """Format OpenWeatherMap data into our application format"""
@@ -1230,58 +1272,59 @@ def format_weather_data(current_data, forecast_data):
             'country': current_data['sys']['country'],
             'forecast': []
         }
-        
+
         # Check for rain data
         if 'rain' in current_data:
             weather_info['rainfall'] = round(current_data['rain'].get('1h', 0), 1)
-        
+
         # Process forecast data
         if forecast_data and 'list' in forecast_data:
             # Group forecast by day and get midday forecast for each day
             daily_forecasts = {}
-            
+
             for item in forecast_data['list']:
                 date = datetime.fromtimestamp(item['dt']).date()
                 hour = datetime.fromtimestamp(item['dt']).hour
-                
+
                 # Get midday forecast (around 12:00-15:00) for each day
                 if date not in daily_forecasts and 11 <= hour <= 15:
                     daily_forecasts[date] = {
-                        'day': date.strftime('%A') if len(daily_forecasts) == 0 else 
-                               'Tomorrow' if len(daily_forecasts) == 1 else 
-                               date.strftime('%a'),
+                        'day': date.strftime('%A') if len(daily_forecasts) == 0 else
+                        'Tomorrow' if len(daily_forecasts) == 1 else
+                        date.strftime('%a'),
                         'temp': round(item['main']['temp'], 1),
                         'condition': item['weather'][0]['main'],
                         'description': item['weather'][0]['description'],
                         'humidity': item['main']['humidity'],
                         'wind_speed': round(item['wind']['speed'] * 3.6, 1)
                     }
-                
+
                 # Limit to 5 days
                 if len(daily_forecasts) >= 5:
                     break
-            
+
             weather_info['forecast'] = list(daily_forecasts.values())
-        
+
         # If no forecast data, create simulated forecast based on current
         if not weather_info['forecast']:
             weather_info['forecast'] = generate_forecast_from_current(weather_info)
-        
+
         return weather_info
-        
+
     except Exception as e:
         print(f"Error formatting weather data: {e}")
         return simulate_weather_data()
 
+
 def generate_forecast_from_current(current_weather):
     """Generate approximate 5-day forecast based on current conditions"""
     import random
-    
+
     forecast = []
     base_temp = current_weather['temperature']
-    
+
     days = ['Today', 'Tomorrow', 'Day 3', 'Day 4', 'Day 5']
-    
+
     for i, day in enumerate(days):
         # Add some variation
         temp_variation = random.uniform(-3, 3)
@@ -1292,8 +1335,9 @@ def generate_forecast_from_current(current_weather):
             'description': current_weather.get('description', current_weather['condition']),
             'humidity': current_weather['humidity'] + random.randint(-10, 10)
         })
-    
+
     return forecast
+
 
 def detect_location_from_ip():
     """Detect user's location from IP address using ipapi.co"""
@@ -1309,12 +1353,13 @@ def detect_location_from_ip():
     except:
         return None
 
+
 def get_weather_by_coordinates(lat, lon):
     """Get weather data using GPS coordinates"""
     try:
         if not OPENWEATHER_API_KEY or OPENWEATHER_API_KEY == 'your_api_key_here':
             return simulate_weather_data()
-        
+
         # Get current weather by coordinates
         current_url = f"{OPENWEATHER_BASE_URL}/weather"
         current_params = {
@@ -1323,14 +1368,14 @@ def get_weather_by_coordinates(lat, lon):
             'appid': OPENWEATHER_API_KEY,
             'units': 'metric'
         }
-        
+
         current_response = requests.get(current_url, params=current_params, timeout=5)
-        
+
         if current_response.status_code != 200:
             return simulate_weather_data()
-        
+
         current_data = current_response.json()
-        
+
         # Get 5-day forecast
         forecast_url = f"{OPENWEATHER_BASE_URL}/forecast"
         forecast_params = {
@@ -1340,15 +1385,16 @@ def get_weather_by_coordinates(lat, lon):
             'units': 'metric',
             'cnt': 40
         }
-        
+
         forecast_response = requests.get(forecast_url, params=forecast_params, timeout=5)
         forecast_data = forecast_response.json() if forecast_response.status_code == 200 else None
-        
+
         return format_weather_data(current_data, forecast_data)
-        
+
     except Exception as e:
         print(f"Error getting weather by coordinates: {e}")
         return simulate_weather_data()
+
 
 # Simulation functions (fallback when API is not available)
 def simulate_disease_detection(image_path, crop_type):
@@ -1359,12 +1405,12 @@ def simulate_disease_detection(image_path, crop_type):
         'rice': ['Blast', 'Brown Spot', 'Healthy'],
         'corn': ['Common Rust', 'Gray Leaf Spot', 'Healthy']
     }
-    
+
     import random
     crop_diseases = diseases.get(crop_type.lower(), ['Unknown Disease', 'Healthy'])
     detected_disease = random.choice(crop_diseases)
     confidence = round(random.uniform(0.75, 0.98), 2)
-    
+
     recommendations = []
     if detected_disease == 'Healthy':
         recommendations = [
@@ -1380,12 +1426,13 @@ def simulate_disease_detection(image_path, crop_type):
             'Avoid overhead irrigation',
             'Consider crop rotation next season'
         ]
-    
+
     return {
         'disease': detected_disease,
         'confidence': confidence,
         'recommendations': recommendations
     }
+
 
 def simulate_weather_data():
     import random
@@ -1404,10 +1451,11 @@ def simulate_weather_data():
         ]
     }
 
+
 def simulate_crop_recommendations(soil_type, season, rainfall):
     """Generate crop recommendations based on soil, season, and rainfall"""
     import random
-    
+
     crop_db = {
         'loamy': {
             'summer': ['Tomato', 'Cucumber', 'Corn', 'Watermelon', 'Bell Pepper'],
@@ -1440,21 +1488,21 @@ def simulate_crop_recommendations(soil_type, season, rainfall):
             'monsoon': ['Legumes', 'Vegetables']
         }
     }
-    
+
     # Get crops for soil and season
     soil_data = crop_db.get(soil_type.lower(), {
         'summer': ['Consult Agricultural Expert'],
         'winter': ['Consult Agricultural Expert'],
         'monsoon': ['Consult Agricultural Expert']
     })
-    
+
     crops = soil_data.get(season.lower(), ['Consult Agricultural Expert'])
-    
+
     # Generate recommendations with varied data
     recommendations = []
     for i, crop in enumerate(crops[:5]):  # Limit to 5 crops
         suitability = 'High' if i < 2 else 'Medium' if i < 4 else 'Moderate'
-        
+
         # Adjust yield based on rainfall
         base_yield = random.randint(25, 45)
         if rainfall == 'high':
@@ -1463,23 +1511,24 @@ def simulate_crop_recommendations(soil_type, season, rainfall):
             yield_multiplier = 1.0
         else:
             yield_multiplier = 0.8
-        
+
         expected_yield = int(base_yield * yield_multiplier)
-        
+
         recommendations.append({
             'crop': crop,
             'suitability': suitability,
             'expected_yield': f'{expected_yield} tons/hectare',
             'duration': f'{random.randint(60, 120)} days'
         })
-    
+
     return recommendations
+
 
 def add_sample_market_prices():
     """Add or update market prices with today's date and realistic variations"""
     from datetime import datetime
     import random
-    
+
     # Base prices for Indian crops (in ₹ per kg)
     base_prices = {
         'Wheat': 25.50,
@@ -1499,32 +1548,33 @@ def add_sample_market_prices():
         'Carrot': 30.00,
         'Cucumber': 20.00
     }
-    
+
     # Market locations in India
     markets = ['Chennai Market', 'Delhi Mandi', 'Mumbai APMC', 'Bangalore Market', 'Kolkata Market']
-    
+
     conn = sqlite3.connect('aifarm.db')
     c = conn.cursor()
-    
+
     # Clear old prices
     c.execute('DELETE FROM market_prices')
-    
+
     today = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
+
     # Add updated prices with variations
     for crop, base_price in base_prices.items():
         # Add price variation (±15%)
         variation = random.uniform(-0.15, 0.15)
         current_price = round(base_price * (1 + variation), 2)
-        
+
         # Select random market
         market = random.choice(markets)
-        
+
         c.execute('''INSERT INTO market_prices (crop_name, price_per_kg, market_location, updated_at)
                      VALUES (?, ?, ?, ?)''', (crop, current_price, market, today))
-    
+
     conn.commit()
     conn.close()
+
 
 if __name__ == '__main__':
     init_db()
