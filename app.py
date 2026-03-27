@@ -213,16 +213,6 @@ def add_government_schemes():
             'category': 'Insurance'
         },
         {
-            'scheme_name': 'Kisan Credit Card (KCC)',
-            'description': 'Credit facility for farmers to meet their agriculture and allied activities requirements at concessional interest rates.',
-            'eligibility': 'All farmers including tenant farmers, oral lessees, and sharecroppers who are engaged in agriculture and allied activities.',
-            'benefits': 'Collateral-free loans up to ₹1.60 lakh. Interest subvention of 2%. Prompt repayment incentive of 3%.',
-            'how_to_apply': 'Apply at any commercial bank, RRB, or cooperative bank with land documents, Aadhaar, and KYC documents.',
-            'ministry': 'Ministry of Agriculture & Farmers Welfare',
-            'website_link': 'https://kcc.gov.in',
-            'category': 'Credit'
-        },
-        {
             'scheme_name': 'Soil Health Card Scheme',
             'description': 'Provides soil health cards to farmers with information on nutrient status and recommendations on appropriate dosage of nutrients.',
             'eligibility': 'All farmers across the country',
@@ -261,16 +251,6 @@ def add_government_schemes():
             'ministry': 'Ministry of Agriculture & Farmers Welfare',
             'website_link': 'https://pgsindia-ncof.gov.in',
             'category': 'Organic Farming'
-        },
-        {
-            'scheme_name': 'Modified Interest Subvention Scheme (MISS)',
-            'description': 'Provides short-term crop loans up to ₹3 lakh at subsidized interest rates.',
-            'eligibility': 'Farmers availing crop loans from banks',
-            'benefits': '2% interest subvention + 3% prompt repayment incentive. Effective interest rate can be as low as 4%.',
-            'how_to_apply': 'Avail crop loan from any scheduled commercial bank, benefit is automatically provided.',
-            'ministry': 'Ministry of Agriculture & Farmers Welfare',
-            'website_link': 'https://agricoop.nic.in',
-            'category': 'Credit'
         },
         {
             'scheme_name': 'Rashtriya Krishi Vikas Yojana (RKVY)',
@@ -317,7 +297,6 @@ def add_government_schemes():
     try:
         conn = sqlite3.connect('aifarm.db')
         c = conn.cursor()
-        # Always wipe and reinsert so DB stays in sync with code (removes deleted schemes)
         c.execute('DELETE FROM govt_schemes')
         for scheme in schemes:
             c.execute('''INSERT INTO govt_schemes 
@@ -452,7 +431,6 @@ def disease_detection():
             return redirect(request.url)
 
         file = request.files['crop_image']
-        crop_type = request.form.get('crop_type', 'Unknown')
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
@@ -461,18 +439,25 @@ def disease_detection():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
 
-            # Simulate AI disease detection (replace with actual AI model)
-            disease_result = simulate_disease_detection(filepath, crop_type)
+            # AI-powered detection (Claude Vision, falls back to simulation)
+            disease_result = ai_detect_disease(filepath)
 
-            # Save to database
+            extra = {
+                'recommendations': disease_result['recommendations'],
+                'severity': disease_result.get('severity', 'N/A'),
+                'treatment_urgency': disease_result.get('treatment_urgency', 'N/A'),
+                'spread_risk': disease_result.get('spread_risk', 'N/A'),
+            }
+
             conn = sqlite3.connect('aifarm.db')
             c = conn.cursor()
             c.execute('''INSERT INTO crop_scans 
                          (user_id, image_path, crop_type, disease_detected, confidence, recommendations)
                          VALUES (?, ?, ?, ?, ?, ?)''',
-                      (session['user_id'], filepath, crop_type,
+                      (session['user_id'], f"uploads/{filename}",
+                       disease_result.get('severity', 'N/A'),
                        disease_result['disease'], disease_result['confidence'],
-                       json.dumps(disease_result['recommendations'])))
+                       json.dumps(extra)))
             scan_id = c.lastrowid
             conn.commit()
             conn.close()
@@ -499,8 +484,23 @@ def scan_result(scan_id):
         return redirect(url_for('disease_detection'))
 
     recommendations = json.loads(scan['recommendations']) if scan['recommendations'] else []
+    raw = json.loads(scan['recommendations']) if scan['recommendations'] else {}
+    if isinstance(raw, list):
+        recommendations = raw
+        severity = 'N/A'
+        treatment_urgency = 'N/A'
+        spread_risk = 'N/A'
+    else:
+        recommendations = raw.get('recommendations', [])
+        severity = raw.get('severity', 'N/A')
+        treatment_urgency = raw.get('treatment_urgency', 'N/A')
+        spread_risk = raw.get('spread_risk', 'N/A')
 
-    return render_template('scan_result.html', scan=scan, recommendations=recommendations)
+    return render_template('scan_result.html', scan=scan,
+                           recommendations=recommendations,
+                           severity=severity,
+                           treatment_urgency=treatment_urgency,
+                           spread_risk=spread_risk)
 
 
 @app.route('/weather')
@@ -644,8 +644,11 @@ def market_prices():
 @login_required
 def refresh_market_prices():
     """Manually refresh market prices"""
-    add_sample_market_prices()
-    flash('Market prices updated successfully!', 'success')
+    try:
+        add_sample_market_prices()
+        flash('Market prices refreshed successfully!', 'success')
+    except Exception as e:
+        flash(f'Error refreshing prices: {e}', 'error')
     return redirect(url_for('market_prices'))
 
 
@@ -809,6 +812,61 @@ def admin_delete_user(user_id):
 
     flash(f'User {username} has been deleted successfully.', 'success')
     return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/market-prices', methods=['GET', 'POST'])
+@admin_required
+def admin_market_prices():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'refresh':
+            add_sample_market_prices()
+            flash('Market prices refreshed successfully!', 'success')
+        elif action == 'update':
+            crop_name = request.form.get('crop_name', '').strip()
+            price = request.form.get('price', '').strip()
+            market_loc = request.form.get('market_location', '').strip()
+            if crop_name and price:
+                try:
+                    conn = sqlite3.connect('aifarm.db')
+                    c = conn.cursor()
+                    c.execute('SELECT id FROM market_prices WHERE crop_name = ?', (crop_name,))
+                    existing = c.fetchone()
+                    today = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    if existing:
+                        c.execute(
+                            'UPDATE market_prices SET price_per_kg=?, market_location=?, updated_at=? WHERE crop_name=?',
+                            (float(price), market_loc, today, crop_name))
+                    else:
+                        c.execute(
+                            'INSERT INTO market_prices (crop_name, price_per_kg, market_location, updated_at) VALUES (?,?,?,?)',
+                            (crop_name, float(price), market_loc, today))
+                    conn.commit()
+                    conn.close()
+                    flash(f'{crop_name} price updated to ₹{price}/kg!', 'success')
+                except Exception as e:
+                    flash(f'Error updating price: {e}', 'error')
+            else:
+                flash('Crop name and price are required.', 'error')
+        elif action == 'delete':
+            crop_name = request.form.get('crop_name', '').strip()
+            if crop_name:
+                conn = sqlite3.connect('aifarm.db')
+                c = conn.cursor()
+                c.execute('DELETE FROM market_prices WHERE crop_name = ?', (crop_name,))
+                conn.commit()
+                conn.close()
+                flash(f'{crop_name} removed from market prices.', 'success')
+        return redirect(url_for('admin_market_prices'))
+
+    conn = sqlite3.connect('aifarm.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM market_prices ORDER BY crop_name')
+    prices = c.fetchall()
+    conn.close()
+    today_date = datetime.now().strftime('%B %d, %Y')
+    return render_template('admin_market_prices.html', prices=prices, today_date=today_date)
 
 
 @app.route('/admin/schemes')
@@ -1396,42 +1454,64 @@ def get_weather_by_coordinates(lat, lon):
         return simulate_weather_data()
 
 
-# Simulation functions (fallback when API is not available)
-def simulate_disease_detection(image_path, crop_type):
-    diseases = {
-        'tomato': ['Early Blight', 'Late Blight', 'Leaf Mold', 'Healthy'],
-        'potato': ['Late Blight', 'Early Blight', 'Healthy'],
-        'wheat': ['Rust', 'Smut', 'Healthy'],
-        'rice': ['Blast', 'Brown Spot', 'Healthy'],
-        'corn': ['Common Rust', 'Gray Leaf Spot', 'Healthy']
-    }
+# Disease detection with Claude Vision API + fallback
+def ai_detect_disease(image_path):
+    """Claude Vision API — falls back to _fallback_detection() if no API key."""
+    try:
+        ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+        if not ANTHROPIC_API_KEY:
+            return _fallback_detection()
+        with open(image_path, 'rb') as f:
+            image_data = base64.b64encode(f.read()).decode('utf-8')
+        ext = image_path.rsplit('.', 1)[-1].lower()
+        media_type = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif'}.get(ext,
+                                                                                                             'image/jpeg')
+        prompt = """Analyze this crop image as an expert plant pathologist.
+Respond ONLY with valid JSON, no markdown:
+{"disease":"exact disease or Healthy","severity":"None or Low or Moderate or High or Critical","treatment_urgency":"No treatment needed or Within 1 week or Within 48 hours or Immediate action required","spread_risk":"None or Low or Medium or High","confidence":0.91,"recommendations":["rec1","rec2","rec3","rec4"]}"""
+        resp = requests.post('https://api.anthropic.com/v1/messages',
+                             headers={'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01',
+                                      'content-type': 'application/json'},
+                             json={'model': 'claude-opus-4-5', 'max_tokens': 500,
+                                   'messages': [{'role': 'user', 'content': [
+                                       {'type': 'image',
+                                        'source': {'type': 'base64', 'media_type': media_type, 'data': image_data}},
+                                       {'type': 'text', 'text': prompt}]}]}, timeout=30)
+        if resp.status_code == 200:
+            raw = resp.json()['content'][0]['text'].strip()
+            if raw.startswith('```'):
+                raw = raw.split('```')[1]
+                if raw.startswith('json'): raw = raw[4:]
+            r = json.loads(raw.strip())
+            return {'disease': r.get('disease', 'Unknown'), 'severity': r.get('severity', 'N/A'),
+                    'treatment_urgency': r.get('treatment_urgency', 'N/A'), 'spread_risk': r.get('spread_risk', 'N/A'),
+                    'confidence': float(r.get('confidence', 0.85)), 'recommendations': r.get('recommendations', [])}
+        return _fallback_detection()
+    except Exception as e:
+        print(f"AI detection error: {e}")
+        return _fallback_detection()
 
+
+def _fallback_detection():
     import random
-    crop_diseases = diseases.get(crop_type.lower(), ['Unknown Disease', 'Healthy'])
-    detected_disease = random.choice(crop_diseases)
-    confidence = round(random.uniform(0.75, 0.98), 2)
-
-    recommendations = []
-    if detected_disease == 'Healthy':
-        recommendations = [
-            'Continue regular monitoring',
-            'Maintain proper irrigation',
-            'Apply balanced fertilizers'
-        ]
+    diseases = ['Early Blight', 'Late Blight', 'Leaf Spot', 'Powdery Mildew', 'Rust', 'Bacterial Wilt', 'Healthy']
+    d = random.choice(diseases)
+    if d == 'Healthy':
+        sev, urg, spd = 'None', 'No treatment needed', 'None'
+        recs = ['Continue regular monitoring', 'Maintain proper irrigation', 'Apply balanced fertilizers']
     else:
-        recommendations = [
-            f'Apply fungicide treatment for {detected_disease}',
-            'Remove affected leaves immediately',
-            'Improve air circulation around plants',
-            'Avoid overhead irrigation',
-            'Consider crop rotation next season'
-        ]
+        sev = random.choice(['Low', 'Moderate', 'High', 'Critical'])
+        urg = random.choice(['Within 1 week', 'Within 48 hours', 'Immediate action required'])
+        spd = random.choice(['Low', 'Medium', 'High'])
+        recs = [f'Apply fungicide treatment for {d}', 'Remove affected leaves immediately',
+                'Improve air circulation around plants', 'Avoid overhead irrigation',
+                'Consider crop rotation next season']
+    return {'disease': d, 'severity': sev, 'treatment_urgency': urg, 'spread_risk': spd,
+            'confidence': round(random.uniform(0.75, 0.98), 2), 'recommendations': recs}
 
-    return {
-        'disease': detected_disease,
-        'confidence': confidence,
-        'recommendations': recommendations
-    }
+
+def simulate_disease_detection(image_path, crop_type):
+    return _fallback_detection()
 
 
 def simulate_weather_data():

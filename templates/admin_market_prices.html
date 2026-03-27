@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Market Price Management - Admin{% endblock %}
+{% block content %}
+<div class="admin-container">
+    <div class="container">
+        <div class="admin-header">
+            <h1><i class="fas fa-dollar-sign"></i> Market Price Management</h1>
+            <p>Update {{ today_date }}</p>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" style="padding:1rem;border-radius:8px;margin-bottom:1rem;background:{% if category=='success' %}#e8f5e9{% else %}#fdecea{% endif %};color:{% if category=='success' %}#2e7d32{% else %}#c62828{% endif %};">
+                <i class="fas fa-{% if category=='success' %}check-circle{% else %}exclamation-circle{% endif %}"></i> {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2rem;">
+
+            <!-- Add / Update Price -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2><i class="fas fa-edit"></i> Add / Update Price</h2>
+                </div>
+                <div class="admin-card-body">
+                    <form method="POST" action="{{ url_for('admin_market_prices') }}">
+                        <input type="hidden" name="action" value="update">
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label><i class="fas fa-seedling"></i> Crop Name</label>
+                            <input type="text" name="crop_name" placeholder="e.g. Tomato" required
+                                   style="width:100%;padding:0.75rem;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:1rem;">
+                            <label><i class="fas fa-rupee-sign"></i> Price per kg (₹)</label>
+                            <input type="number" name="price" step="0.01" min="0" placeholder="e.g. 25.50" required
+                                   style="width:100%;padding:0.75rem;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:1.5rem;">
+                            <label><i class="fas fa-map-marker-alt"></i> Market Location</label>
+                            <select name="market_location" style="width:100%;padding:0.75rem;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;">
+                                <option value="Chennai Market">Chennai Market</option>
+                                <option value="Delhi Mandi">Delhi Mandi</option>
+                                <option value="Mumbai APMC">Mumbai APMC</option>
+                                <option value="Bangalore Market">Bangalore Market</option>
+                                <option value="Kolkata Market">Kolkata Market</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-save"></i> Save Price
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                </div>
+                <div class="admin-card-body">
+                    <form method="POST" action="{{ url_for('admin_market_prices') }}" style="margin-bottom:1rem;">
+                        <input type="hidden" name="action" value="refresh">
+                        <button type="submit" class="btn btn-primary btn-block" style="padding:1rem;">
+                            <i class="fas fa-sync-alt"></i> Refresh All Prices (Random Variation)
+                        </button>
+                    </form>
+                    <p style="color:#888;font-size:0.9rem;text-align:center;">Refreshes all prices with ±15% market variation</p>
+
+                    <hr style="margin:1.5rem 0;border:none;border-top:1px solid #eee;">
+
+                    <h3 style="margin-bottom:1rem;font-size:1rem;"><i class="fas fa-trash"></i> Remove a Crop</h3>
+                    <form method="POST" action="{{ url_for('admin_market_prices') }}">
+                        <input type="hidden" name="action" value="delete">
+                        <div style="display:flex;gap:0.75rem;">
+                            <input type="text" name="crop_name" placeholder="Crop name to remove"
+                                   style="flex:1;padding:0.75rem;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;">
+                            <button type="submit" class="btn btn-secondary" style="background:#d32f2f;color:#fff;border:none;padding:0.75rem 1rem;border-radius:8px;cursor:pointer;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr style="margin:1.5rem 0;border:none;border-top:1px solid #eee;">
+                    <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary btn-block">
+                        <i class="fas fa-arrow-left"></i> Back to Admin Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Prices Table -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2><i class="fas fa-table"></i> Current Market Prices ({{ prices|length }} crops)</h2>
+            </div>
+            <div class="admin-card-body" style="padding:0;">
+                <div class="table-responsive">
+                    <table class="admin-table" style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:#f5f5f5;">
+                                <th style="padding:1rem;text-align:left;">Crop</th>
+                                <th style="padding:1rem;text-align:left;">Price (₹/kg)</th>
+                                <th style="padding:1rem;text-align:left;">Market</th>
+                                <th style="padding:1rem;text-align:left;">Last Updated</th>
+                                <th style="padding:1rem;text-align:left;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for price in prices %}
+                            <tr style="border-bottom:1px solid #f0f0f0;">
+                                <td style="padding:1rem;font-weight:600;">{{ price.crop_name }}</td>
+                                <td style="padding:1rem;color:#2e7d32;font-weight:700;">₹{{ price.price_per_kg }}</td>
+                                <td style="padding:1rem;color:#555;">{{ price.market_location }}</td>
+                                <td style="padding:1rem;color:#888;font-size:0.9rem;">{{ price.updated_at[:16] }}</td>
+                                <td style="padding:1rem;">
+                                    <form method="POST" action="{{ url_for('admin_market_prices') }}" style="display:inline;">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="crop_name" value="{{ price.crop_name }}">
+                                        <button type="submit" style="background:#fdecea;color:#c62828;border:1px solid #c62828;padding:0.4rem 0.75rem;border-radius:6px;cursor:pointer;font-size:0.85rem;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

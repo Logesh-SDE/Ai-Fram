@@ -1,7 +1,5 @@
 {% extends "base.html" %}
-
 {% block title %}Scan Results - AI-Farm{% endblock %}
-
 {% block content %}
 <div class="page-container">
     <div class="container">
@@ -9,54 +7,45 @@
             <h1><i class="fas fa-microscope"></i> Analysis Results</h1>
             <p>Scan completed on {{ scan.scan_date[:16] }}</p>
         </div>
-
         <div class="result-container">
             <div class="result-image">
                 <img src="{{ url_for('static', filename=scan.image_path) }}" alt="Scanned crop">
             </div>
-
             <div class="result-details">
                 <div class="result-card">
                     <h2>Detection Results</h2>
                     <div class="result-info">
-
                         <div class="info-item">
                             <span class="label"><i class="fas fa-bug"></i> Disease Detected:</span>
                             <span class="value disease-name {% if scan.disease_detected == 'Healthy' %}healthy{% else %}diseased{% endif %}">
                                 {{ scan.disease_detected | capitalize }}
                             </span>
                         </div>
-
                         <div class="info-item">
                             <span class="label"><i class="fas fa-exclamation-circle"></i> Severity:</span>
-                            <span class="value" style="font-weight:700; color:
+                            <span class="value" style="font-weight:700;color:
                                 {% if severity == 'Critical' %}#d32f2f
                                 {% elif severity == 'High' %}#f57c00
                                 {% elif severity == 'Moderate' %}#fbc02d
-                                {% elif severity in ['Low', 'None'] %}#388e3c
+                                {% elif severity in ['Low','None'] %}#388e3c
                                 {% else %}#555{% endif %};">
                                 {% if severity and severity != 'N/A' %}{{ severity }}{% else %}—{% endif %}
                             </span>
                         </div>
-
                         <div class="info-item">
                             <span class="label"><i class="fas fa-clock"></i> Treatment Urgency:</span>
-                            <span class="value">
-                                {% if treatment_urgency and treatment_urgency != 'N/A' %}{{ treatment_urgency }}{% else %}—{% endif %}
-                            </span>
+                            <span class="value">{% if treatment_urgency and treatment_urgency != 'N/A' %}{{ treatment_urgency }}{% else %}—{% endif %}</span>
                         </div>
-
                         <div class="info-item">
                             <span class="label"><i class="fas fa-wind"></i> Spread Risk:</span>
-                            <span class="value" style="font-weight:600; color:
+                            <span class="value" style="font-weight:600;color:
                                 {% if spread_risk == 'High' %}#d32f2f
                                 {% elif spread_risk == 'Medium' %}#f57c00
-                                {% elif spread_risk in ['Low', 'None'] %}#388e3c
+                                {% elif spread_risk in ['Low','None'] %}#388e3c
                                 {% else %}#555{% endif %};">
                                 {% if spread_risk and spread_risk != 'N/A' %}{{ spread_risk }}{% else %}—{% endif %}
                             </span>
                         </div>
-
                         <div class="info-item">
                             <span class="label"><i class="fas fa-chart-bar"></i> Confidence Level:</span>
                             <span class="value">{{ (scan.confidence * 100)|round(1) }}%</span>
@@ -64,10 +53,8 @@
                         <div class="confidence-bar">
                             <div class="confidence-fill" style="width: {{ (scan.confidence * 100)|round(1) }}%"></div>
                         </div>
-
                     </div>
                 </div>
-
                 <div class="result-card recommendations">
                     <h2><i class="fas fa-lightbulb"></i> Recommendations</h2>
                     {% if recommendations %}
@@ -80,7 +67,6 @@
                         <p>No specific recommendations available.</p>
                     {% endif %}
                 </div>
-
                 {% if scan.disease_detected != 'Healthy' %}
                 <div class="result-card warning">
                     <h2><i class="fas fa-exclamation-triangle"></i> Important Notes</h2>
@@ -92,14 +78,9 @@
                     </ul>
                 </div>
                 {% endif %}
-
                 <div class="result-actions">
-                    <a href="{{ url_for('disease_detection') }}" class="btn btn-primary">
-                        <i class="fas fa-camera"></i> Scan Another Crop
-                    </a>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
-                        <i class="fas fa-chart-line"></i> Back to Dashboard
-                    </a>
+                    <a href="{{ url_for('disease_detection') }}" class="btn btn-primary"><i class="fas fa-camera"></i> Scan Another Crop</a>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-chart-line"></i> Back to Dashboard</a>
                 </div>
             </div>
         </div>
